@@ -93,6 +93,10 @@ details.cfg summary{cursor:pointer;font-weight:700}
 .glabel{background:#fff8ec;color:#5a0d15;border:1px solid #d42b38;font-weight:700;font-size:12px;padding:2px 7px;border-radius:8px}
 .glabel.gstar{background:#d42b38;color:#fff;border-color:#f4c04e;font-size:13px}
 .roundbig,.reveal{z-index:1000}
+.gdist{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;background:#123524;color:#fff8ec;border:2px solid;border-radius:999px;padding:3px 10px;font:700 13px var(--mono);box-shadow:0 2px 6px #0006}
+.gdist b{color:var(--gold)}
+.gdist.done{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}100%{transform:translate(-50%,-50%) scale(1)}}
 .final{z-index:1001}
 .toast{z-index:3000}
 .leaflet-control-zoom a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
@@ -139,6 +143,20 @@ function makeMap(container,{onPick}={}){
       for(const l of items.lines||[])L.polyline([[l.a.lat,l.a.lng],[l.b.lat,l.b.lng]],{color:l.color,weight:3,dashArray:'7 6',opacity:.9,interactive:false}).addTo(layer);
       for(const m of items.markers||[]){const mk=L.marker([m.lat,m.lng],{icon:m.star?star:gift(m.color||'#f2b84b'),interactive:false,zIndexOffset:m.star?1000:0}).addTo(layer);
         if(m.label)mk.bindTooltip(esc(m.label),{permanent:true,direction:'top',className:'glabel'+(m.star?' gstar':'')})}},
+    animate(ans,res,instant){layer.clearLayers();
+      const sm=L.marker([ans.lat,ans.lng],{icon:star,interactive:false,zIndexOffset:2000}).addTo(layer);sm.bindTooltip(esc(ans.name),{permanent:true,direction:'top',className:'glabel gstar'});
+      const items=res.map((x,i)=>{L.marker([x.lat,x.lng],{icon:gift(x.color),interactive:false}).addTo(layer).bindTooltip(esc(x.team),{permanent:true,direction:'top',className:'glabel'});
+        const line=L.polyline([[x.lat,x.lng],[x.lat,x.lng]],{color:x.color,weight:4,dashArray:'8 7',opacity:.95,interactive:false}).addTo(layer);
+        const badge=L.marker([x.lat,x.lng],{interactive:false,zIndexOffset:1500,icon:L.divIcon({className:'gpin',iconSize:[0,0],html:`<span class="gdist" style="border-color:${x.color}">0 km</span>`})}).addTo(layer);
+        return {x,line,badge,delay:i*350}});
+      const dur=instant?0:1800,t0=performance.now();
+      const ease=p=>1-Math.pow(1-p,3);
+      function frame(now){let done=true;
+        for(const it of items){let p=dur?Math.min(1,Math.max(0,(now-t0-it.delay)/dur)):1;if(p<1)done=false;const e=ease(p);
+          const cur=[it.x.lat+(ans.lat-it.x.lat)*e,it.x.lng+(ans.lng-it.x.lng)*e];it.line.setLatLngs([[it.x.lat,it.x.lng],cur]);it.badge.setLatLng(p<1?cur:[(it.x.lat+ans.lat)/2,(it.x.lng+ans.lng)/2]);
+          const el=it.badge.getElement();if(el){const sp=el.querySelector('.gdist');sp.innerHTML=p<1?fmtKm(it.x.km*e):`${fmtKm(it.x.km)} · <b>+${it.x.pts}</b>`;if(p>=1)sp.classList.add('done')}}
+        if(!done)requestAnimationFrame(frame)}
+      requestAnimationFrame(frame)},
     fit(pts){if(!pts.length)return;if(pts.length===1)map.flyTo([pts[0].lat,pts[0].lng],6,{duration:1});else map.flyToBounds(pts.map(p=>[p.lat,p.lng]),{padding:[70,70],maxZoom:13,duration:1})}
   };
 }
@@ -159,7 +177,7 @@ function netDot(ok){const d=$('#net');if(!d)return;d.textContent=ok?'Conectado':
 function leader(){
   const st=LS.get('geo-leader',{team:''});
   let state={gid:null,r:0,endAt:0,open:false,revealed:false,answer:null,total:6};
-  let pick=null,sentFor=null;
+  let pick=null,sentFor=null,animKey='';
   $('#app').innerHTML=`
   <header>
     <div class="brand">Geo<i>Navidad</i></div><span class="tag" id="net">Conectando…</span><div class="spacer"></div>
@@ -176,10 +194,8 @@ function leader(){
   const map=makeMap($('#map'),{onPick(ll){if(state.revealed)return;pick=ll;sentFor=null;drawMine();update()}});
   const team=$('#team'),send=$('#send'),code=$('#code');
   function drawMine(){const mk=[];const ln=[];
-    if(state.revealed&&state.answer){const res=state.results||[];
-      for(const x of res){mk.push({lat:x.lat,lng:x.lng,color:x.color,label:x.team});ln.push({a:x,b:state.answer,color:x.color})}
-      if(pick&&!res.some(x=>x.team===team.value.trim()))mk.push({...pick,color:'#d42b38',label:'Tú'});
-      mk.push({...state.answer,star:true,label:state.answer.name})}
+    if(state.revealed&&state.answer){const key=state.gid+':'+state.r,first=animKey!==key;animKey=key;
+      if(first){setTimeout(()=>map.animate(state.answer,state.results||[],false),1100)}else map.animate(state.answer,state.results||[],true);return}
     else if(pick)mk.push({...pick,color:'#d42b38',label:team.value.trim()||'Tú'});
     map.set({markers:mk,lines:ln})}
   function timeLeft(){return state.open&&state.endAt?Math.max(0,Math.ceil((state.endAt-Date.now())/1000)):null}
@@ -213,10 +229,10 @@ function leader(){
 
 /* ---------- MASTER VIEW ---------- */
 function master(){
-  const S=LS.get('geo-master3',null)||{places:DEFAULT_PLACES,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}};
+  const KEY='geo-master3:'+SALA;const S=LS.get(KEY,null)||LS.get('geo-master3',null)||{places:DEFAULT_PLACES,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}};
   if(!S.gid)S.gid=Math.random().toString(36).slice(2,10);S.closeAt=S.closeAt||{};S.revealSecs=S.revealSecs||15;
-  const save=()=>LS.set('geo-master3',S);
-  let phase='idle',phaseEnd=0,pausedLeft=0,pausedFrom='',left=S.secs,lastBeep=-1,audio=null;
+  const save=()=>LS.set(KEY,S);
+  let animKey='';let phase='idle',phaseEnd=0,pausedLeft=0,pausedFrom='',left=S.secs,lastBeep=-1,audio=null;
   $('#app').innerHTML=`
   <header>
     <div class="brand">Geo<i>Navidad</i></div><span class="tag">Master</span><span class="tag" id="net">Conectando…</span><div class="spacer"></div>
@@ -261,8 +277,9 @@ function master(){
   function renderBoard(){$('#board').innerHTML=boardHTML(totals())}
   function renderMap(){const r=S.round,pl=S.places[r-1];
     if(S.revealed[r]&&pl){const res=results(r);
-      map.set({lines:res.map(x=>({a:x.ll,b:pl,color:colorOf(x.team)})),markers:[...res.map(x=>({...x.ll,color:colorOf(x.team),label:x.team})),{...pl,star:true,label:pl.name}]});
-      $('#rev').textContent=pl.name+(res.length?` · Gana ${res[0].team} (${fmtKm(res[0].km)})`:'');$('#rev').hidden=false;map.fit([pl,...res.map(x=>x.ll)])}
+      const key=S.gid+':'+r,first=animKey!==key;animKey=key;const rr=res.map(x=>({lat:x.ll.lat,lng:x.ll.lng,color:colorOf(x.team),team:x.team,km:x.km,pts:x.pts}));
+      if(first){map.fit([pl,...rr]);setTimeout(()=>map.animate(pl,rr,false),1100)}else map.animate(pl,rr,true);
+      $('#rev').textContent=pl.name+(res.length?` · Gana ${res[0].team} (${fmtKm(res[0].km)})`:'');$('#rev').hidden=false}
     else{map.set({markers:[],lines:[]});$('#rev').hidden=true}
     $('#final').hidden=phase!=='final';if(phase==='final')$('#final').innerHTML=finalHTML(totals())}
   function renderCfg(){$('#cfg').innerHTML=S.places.map((p,i)=>`<div class="cfgrow"><span class="mono">${i+1}</span><input class="t" id="pn${i}" data-i="${i}" data-k="name" value="${esc(p.name)}" aria-label="Lugar ${i+1}"><input class="t mono" id="pa${i}" data-i="${i}" data-k="lat" value="${p.lat}" aria-label="Latitud ${i+1}"><input class="t mono" id="po${i}" data-i="${i}" data-k="lng" value="${p.lng}" aria-label="Longitud ${i+1}"></div>`).join('')+'<p class="hint">En Google Maps, clic derecho sobre el sitio y pulsa las coordenadas para copiarlas; pégalas en la casilla de latitud.</p>'}
