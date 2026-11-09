@@ -1,4 +1,23 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>GeoNavidad</title>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><script>/* DEMO: ?demo=1 simula 10 equipos sin conexión real */
+if(new URLSearchParams(location.search).has('demo')){(()=>{
+const P=[{name:"Rockefeller Center, Nueva York",lat:40.7587,lng:-73.9787},{name:"Pueblo de Papá Noel, Rovaniemi",lat:66.5436,lng:25.8473},{name:"Vigo",lat:42.2406,lng:-8.7207},{name:"Mercadillo de Estrasburgo",lat:48.5819,lng:7.7507},{name:"Christkindlesmarkt, Núremberg",lat:49.4539,lng:11.0775},{name:"Basílica de la Natividad, Belén",lat:31.7043,lng:35.2024}];
+const sala=(new URLSearchParams(location.search).get('sala')||'navidad-k7q2x9').replace(/[^\w-]/g,'');const KEY='geo-master3:'+sala;
+if(location.hash.includes('master'))try{localStorage.setItem(KEY,JSON.stringify({places:P,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}}))}catch(e){}
+const of=window.fetch;const ls=[];
+window.fetch=async(u,o)=>{u=String(u);if(!u.includes('ntfy.sh'))return of(u,o);
+ if(o&&o.method==='POST'){try{const m=JSON.parse(o.body);if(m.k==='state')window.__state=m}catch(e){}return new Response('{}')}
+ return new Response('')};
+window.EventSource=function(){const es=this;ls.push(es);setTimeout(()=>es.onopen&&es.onopen(),20)};
+const emit=o=>ls.forEach(es=>es.onmessage&&es.onmessage({data:JSON.stringify({event:'message',time:Math.floor(Date.now()/1000),message:JSON.stringify(o)})}));
+const T=['Los Renos Locos','Turrón Duro','Elfos Express','Polvorones','Bolas de Nieve','Los Reyes Majos','Mazapán Team','Zambomba','Villancicos FC','Trineo Turbo'];
+const skill=T.map(()=>0.4+Math.random()*1.4);const done={};
+setTimeout(()=>T.forEach((t,i)=>setTimeout(()=>emit({k:'hello',team:t,id:'demo'+i}),i*700)),2500);
+setInterval(()=>{const s=window.__state;if(!s||s.phase!=='play'||!s.open)return;const key=s.gid+':'+s.r;if(done[key])return;done[key]=1;
+ const p=P[s.r-1];if(!p)return;const left=(s.endAt-Date.now())/1000;
+ T.forEach((t,i)=>{const d=(2+Math.random()*Math.max(1,left-4))*1000;setTimeout(()=>{const km=Math.pow(Math.random(),1.6)*2500*skill[i]*(s.r===6?1.5:1)+3;const a=Math.random()*6.283;
+  const lat=p.lat+km/111*Math.cos(a),lng=p.lng+km/(111*Math.cos(p.lat*Math.PI/180))*Math.sin(a);
+  emit({k:'guess',gid:s.gid,r:s.r,team:t,id:'demo'+i,hint:Math.random()<.2,lat:Math.max(-85,Math.min(85,lat)),lng})},d)})},300);
+})()}</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>GeoNavidad</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@500;600&display=swap">
