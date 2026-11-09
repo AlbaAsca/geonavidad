@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><script>/* DEMO: ?demo=1 simula 10 equipos sin conexión real */
 if(new URLSearchParams(location.search).has('demo')){(()=>{
-const P=[{name:"Rockefeller Center, Nueva York",lat:40.7587,lng:-73.9787},{name:"Pueblo de Papá Noel, Rovaniemi",lat:66.5436,lng:25.8473},{name:"Vigo",lat:42.2406,lng:-8.7207},{name:"Mercadillo de Estrasburgo",lat:48.5819,lng:7.7507},{name:"Christkindlesmarkt, Núremberg",lat:49.4539,lng:11.0775},{name:"Basílica de la Natividad, Belén",lat:31.7043,lng:35.2024}];
+const P=[{name:"Rockefeller Center, Nueva York",lat:40.7587,lng:-73.9787},{name:"Pueblo de Papá Noel, Rovaniemi",lat:66.5436,lng:25.8473},{name:"Vigo",lat:42.2406,lng:-8.7207},{name:"Mercadillo de Estrasburgo",lat:48.5819,lng:7.7507},{name:"Basílica de la Natividad, Belén",lat:31.7043,lng:35.2024},{name:"Alumbrados del río, Medellín",lat:6.2380,lng:-75.5760}];
 const sala=(new URLSearchParams(location.search).get('sala')||'navidad-k7q2x9').replace(/[^\w-]/g,'');const KEY='geo-master3:'+sala;
 if(location.hash.includes('master'))try{localStorage.setItem(KEY,JSON.stringify({places:P,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}}))}catch(e){}
 const of=window.fetch;const ls=[];
@@ -407,7 +407,7 @@ function master(){
     <span class="hint">Sala <b class="mono">${esc(SALA)}</b></span><button class="btn" id="qrBtn">Invitar · QR</button>
   </header>
   <div class="stage">
-    <div class="mapwrap" id="map"><div class="roundbig" id="rbig"></div><div class="reveal" id="rev" hidden></div><div class="lobby" id="lobby" hidden></div><div class="final" id="final" hidden></div><iframe id="pistasF" class="pistasF" src="pistas/?embed=1&v=4" title="Pistas de la ronda"></iframe></div>
+    <div class="mapwrap" id="map"><div class="roundbig" id="rbig"></div><div class="reveal" id="rev" hidden></div><div class="lobby" id="lobby" hidden></div><div class="final" id="final" hidden></div><iframe id="pistasF" class="pistasF" src="pistas/?embed=1&v=5" title="Pistas de la ronda"></iframe></div>
     <aside class="rail">
       <section class="card"><h3>Ronda</h3><div class="rounds" id="rounds"></div></section>
       <section class="card"><h3>Temporizador</h3>
