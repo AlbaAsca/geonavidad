@@ -127,7 +127,7 @@ let countries=[];
 function makeMap(container,{onPick}={}){
   const el=document.createElement('div');el.style.cssText='position:absolute;inset:0';container.insertBefore(el,container.firstChild);
   const map=L.map(el,{worldCopyJump:true,zoomControl:false,minZoom:2,maxBounds:[[-85,-400],[85,400]]}).setView([35,0],2);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   const layer=L.layerGroup().addTo(map);
   if(onPick)map.on('click',e=>{const ll=e.latlng.wrap();onPick({lat:ll.lat,lng:ll.lng})});
