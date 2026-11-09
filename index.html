@@ -99,6 +99,32 @@ details.cfg summary{cursor:pointer;font-weight:700}
 .rpod div{display:grid;grid-template-columns:26px 14px 1fr auto auto;gap:8px;align-items:center;font-size:16px}
 .rpod .rpt{display:block;font-family:var(--xmas);color:var(--gold);font-size:20px}
 .rpod .pts{color:var(--gold)}
+.lobby{position:absolute;inset:0;z-index:1001;display:grid;place-items:center;background:#0e2a1cd9;padding:16px}
+.lbox{background:var(--panel);border:2px solid var(--gold);border-radius:18px;padding:18px 22px;max-width:100%;box-shadow:inset 0 5px 0 var(--red)}
+.ltitle{font-family:var(--xmas);font-size:40px;color:var(--gold);text-align:center;margin-bottom:8px}
+.lgrid{display:grid;grid-template-columns:auto minmax(0,320px);gap:20px;align-items:center}
+.qr{background:#fff;border-radius:12px;padding:6px;width:200px;height:200px}
+.qr svg{width:100%;height:100%;display:block}
+.llink{word-break:break-all;font-size:14px;margin:4px 0 10px}
+.lcount{font-size:18px;margin:12px 0 6px}.lcount b{color:var(--gold);font-size:26px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px;color:var(--muted)}
+.chip.on{color:var(--ink);border-color:var(--ok)}
+.chip.pop{animation:pop .4s ease-out}
+.diana{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:4000;background:var(--red);color:#fff;border:3px solid var(--gold);border-radius:20px;padding:14px 30px;font-family:var(--xmas);font-size:56px;text-align:center;animation:pop .5s ease-out;box-shadow:0 10px 40px #0008}
+.diana small{display:block;font-family:var(--display);font-size:20px;font-weight:700}
+.hintbox{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:1000;background:var(--gold);color:var(--gold-ink);border-radius:12px;padding:8px 16px;font-weight:800;font-size:17px;max-width:90%;text-align:center}
+.bon{display:block;color:var(--gold);font-size:11px}
+.up{color:var(--ok);font-size:11px;font-weight:800}.down{color:#ff8a80;font-size:11px;font-weight:800}
+.cfgcard{display:flex;flex-direction:column;gap:5px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.cfgrow2{display:grid;grid-template-columns:1fr auto auto;gap:6px;padding-left:28px}
+.cfgrow2 input{min-width:0;padding:6px 7px;font-size:13px}
+.btn.mini{padding:4px 9px;font-size:13px}
+.qres{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.qitem{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.frow{animation:rise .6s both}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@media (max-width:600px){.lgrid{grid-template-columns:1fr}.qr{margin:0 auto}.diana{font-size:38px}}
 .gdist.done{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}100%{transform:translate(-50%,-50%) scale(1)}}
 .final{z-index:1001}
@@ -118,6 +144,8 @@ details.cfg summary{cursor:pointer;font-weight:700}
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
 <script>
 
 const LS = {get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -172,80 +200,116 @@ const SALA=(new URLSearchParams(location.search).get('sala')||'navidad-k7q2x9').
 const NTFY='https://ntfy.sh/geonavidad-'+SALA;
 const Net={
   async send(o){const r=await fetch(NTFY,{method:'POST',body:JSON.stringify(o)});if(!r.ok)throw new Error('HTTP '+r.status)},
-  async history(){try{const r=await fetch(NTFY+'/json?poll=1&since=all');const t=await r.text();
+  async history(){try{const r=await fetch(NTFY+'/json?poll=1&since=3h');const t=await r.text();
     return t.split('\n').filter(Boolean).map(l=>{try{const m=JSON.parse(l);return m.event==='message'?Object.assign(JSON.parse(m.message),{_t:m.time}):null}catch(e){return null}}).filter(Boolean)}catch(e){return []}},
   listen(fn,status){try{const es=new EventSource(NTFY+'/sse');es.onopen=()=>status(true);es.onerror=()=>status(false);
     es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event==='message')fn(Object.assign(JSON.parse(m.message),{_t:m.time}))}catch(_){}}}catch(e){status(false)}}
 };
 function netDot(ok){const d=$('#net');if(!d)return;d.textContent=ok?'Conectado':'Sin conexión';d.style.color=ok?'var(--ok)':'var(--red)'}
 
+/* ---------- UTILIDADES PRO ---------- */
+const canon=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const SFX={ctx:null,
+  init(){try{this.ctx=this.ctx||new (window.AudioContext||window.webkitAudioContext)();if(this.ctx.state==='suspended')this.ctx.resume()}catch(e){}},
+  note(f,t,d,type,vol){const c=this.ctx;if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=type||'triangle';o.frequency.value=f;o.connect(g);g.connect(c.destination);
+    const s=c.currentTime+t;g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(vol||.22,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.start(s);o.stop(s+d+.05)},
+  bell(f,t){this.note(f,t,.5,'sine',.2);this.note(f*2.76,t,.25,'sine',.05);this.note(f*5.4,t,.12,'sine',.03)},
+  beep(f,d){this.note(f,0,d,'square',.08)},
+  jingle(){const E=659.3,G=784,C=523.3,D=587.3;[[E,0],[E,.18],[E,.36],[E,.72],[E,.9],[E,1.08],[E,1.44],[G,1.62],[C,1.8],[D,1.98],[E,2.16]].forEach(([f,t])=>this.bell(f,t))},
+  fanfare(){[[523.3,0,.18],[659.3,.18,.18],[784,.36,.18],[1046.5,.54,.9],[784,1.0,.2],[1046.5,1.2,1.2]].forEach(([f,t,d])=>{this.note(f,t,d,'sawtooth',.07);this.note(f/2,t,d,'triangle',.12)})},
+  diana(){[1046.5,1318.5,1568,2093].forEach((f,i)=>this.bell(f,i*.08))}
+};
+function boom(big){if(!window.confetti)return;const colors=['#d42b38','#f4c04e','#2f8a4e','#fff8ec'];
+  if(!big){confetti({particleCount:120,spread:80,origin:{y:.6},colors,zIndex:5000});return}
+  const end=Date.now()+3000;(function f(){confetti({particleCount:6,angle:60,spread:60,origin:{x:0},colors,zIndex:5000});confetti({particleCount:6,angle:120,spread:60,origin:{x:1},colors,zIndex:5000});if(Date.now()<end)requestAnimationFrame(f)})()}
+function banner(html){const b=document.createElement('div');b.className='diana';b.innerHTML=html;document.body.appendChild(b);setTimeout(()=>b.remove(),4200)}
+function qrSVG(text){try{const q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:6,margin:2,scalable:true})}catch(e){return ''}}
+function leaderLink(){return location.origin+location.pathname+'?sala='+SALA}
+
 /* ---------- LEADER VIEW ---------- */
 function leader(){
   const st=LS.get('geo-leader',{team:''});
-  let state={gid:null,r:0,endAt:0,open:false,revealed:false,answer:null,total:6};
-  let pick=null,sentFor=null,animKey='';
+  let myId=LS.get('geo-id',null);if(!myId){myId=Math.random().toString(36).slice(2,12);LS.set('geo-id',myId)}
+  let state={gid:null,r:0,endAt:0,open:false,revealed:false,answer:null,total:6,phase:'idle'};
+  let pick=null,sentFor=null,animKey='',usedHint=null,registered=false,finalShown='',dianaShown='';
   $('#app').innerHTML=`
   <header>
     <div class="brand">Geo<i>Navidad</i></div><span class="tag" id="net">Conectando…</span><div class="spacer"></div>
-    <label class="f">Equipo<input class="t" id="team" maxlength="24" placeholder="Nombre del equipo" value="${esc(st.team)}"></label>
+    <label class="f">Equipo<input class="t" id="team" maxlength="24" placeholder="Nombre del equipo" value="${esc(st.team)}" autocomplete="off"></label>
+    <span class="tag" id="me" hidden>✓ Inscrito</span>
   </header>
-  <div class="stage"><div class="mapwrap" id="map"><div class="roundbig" id="rbig"><small>Ronda</small>–</div><div class="reveal" id="rev" hidden></div><div class="final" id="final" hidden></div></div></div>
+  <div class="stage"><div class="mapwrap" id="map"><div class="roundbig" id="rbig"><small>Ronda</small>–</div><div class="reveal" id="rev" hidden></div><div class="hintbox" id="hintbox" hidden></div><div class="final" id="final" hidden></div></div></div>
   <div class="lbar">
     <div class="timer mono" id="ltimer" style="font-size:34px;min-width:96px">–:––</div>
-    <div class="hint code" id="status">Esperando a que el master empiece la ronda.</div>
+    <div class="hint code" id="status">Escribe el nombre del equipo para inscribirte.</div>
+    <button class="btn" id="hintBtn" hidden>💡 Pista (−20%)</button>
     <button class="btn gold" id="send" disabled>Enviar respuesta</button>
   </div>
   <details class="hint"><summary>¿No se envía? Copia el texto y pégalo en el chat de Meet</summary>
     <div class="lbar" style="margin-top:6px"><input class="t mono code" id="code" readonly><button class="btn" id="copy">Copiar</button></div></details>`;
-  const map=makeMap($('#map'),{onPick(ll){if(state.revealed)return;pick=ll;sentFor=null;drawMine();update()}});
-  const team=$('#team'),send=$('#send'),code=$('#code');
-  function drawMine(){const mk=[];const ln=[];
-    if(state.revealed&&state.answer){const key=state.gid+':'+state.r,first=animKey!==key;animKey=key;
+  const map=makeMap($('#map'),{onPick(ll){if(state.revealed||!state.open)return;pick=ll;sentFor=null;drawMine();update()}});
+  const team=$('#team'),send=$('#send'),code=$('#code'),hintBtn=$('#hintBtn');
+  const tn=()=>team.value.replace(/[|\n]/g,' ').trim().slice(0,24);
+  function hello(){const t=tn();if(!t)return;Net.send({k:'hello',team:t,id:myId}).catch(()=>{})}
+  function drawMine(){if(state.revealed&&state.answer){const key=state.gid+':'+state.r,first=animKey!==key;animKey=key;
       if(first){setTimeout(()=>map.animate(state.answer,state.results||[],false),1100)}else map.animate(state.answer,state.results||[],true);return}
-    else if(pick)mk.push({...pick,color:'#d42b38',label:team.value.trim()||'Tú'});
-    map.set({markers:mk,lines:ln})}
+    map.set({markers:pick?[{...pick,color:'#d42b38',label:tn()||'Tú'}]:[],lines:[]})}
   function timeLeft(){return state.open&&state.endAt?Math.max(0,Math.ceil((state.endAt-Date.now())/1000)):null}
-  function update(){const tn=team.value.replace(/[|\n]/g,' ').trim();LS.set('geo-leader',{team:tn});
-    const tl=timeLeft();const canSend=!!(pick&&tn&&state.open&&tl>0);send.disabled=!canSend;
-    const el=$('#ltimer');el.textContent=tl===null?'–:––':Math.floor(tl/60)+':'+String(tl%60).padStart(2,'0');el.className='timer mono'+(tl!==null&&tl<=10?' low':'');
+  function update(){const t=tn();LS.set('geo-leader',{team:t});
+    const tl=timeLeft();send.disabled=!(pick&&t&&registered&&state.open&&tl>0);
+    team.readOnly=registered&&state.phase&&state.phase!=='idle'&&!state.final;
+    $('#me').hidden=!registered;
+    hintBtn.hidden=!(state.open&&state.hint&&usedHint!==state.r&&tl>0);
+    const el=$('#ltimer');el.textContent=tl===null?'–:––':Math.floor(tl/60)+':'+String(tl%60).padStart(2,'0');el.className='timer mono'+(tl!==null&&tl<=5?' low':'');
     $('#rbig').innerHTML=`<small>Ronda</small>${state.r?state.r+' / '+state.total:'–'}`;
     const s=$('#status');
     if(state.final)s.textContent='Partida terminada. ¡Gracias por jugar!';
-    else if(state.revealed&&state.answer){const mine=(state.results||[]).find(x=>x.team===tn);s.innerHTML=mine?`Estabais a <b>${fmtKm(mine.km)}</b> · ${mine.pts} puntos`:pick?`Estabais a <b>${fmtKm(haversine(pick,state.answer))}</b> · ${score(haversine(pick,state.answer))} puntos`:'Ronda resuelta.'}
-    else if(!tn)s.textContent='Escribe arriba el nombre del equipo.';
-    else if(state.phase==='paused')s.textContent='Pausa.';else if(!state.open)s.textContent=state.r?'Ronda cerrada. Espera a la siguiente.':'Esperando a que el master empiece la ronda.';
+    else if(state.revealed&&state.answer){const mine=(state.results||[]).find(x=>canon(x.team)===canon(t));s.innerHTML=mine?`Estabais a <b>${fmtKm(mine.km)}</b> · <b>+${mine.pts}</b> puntos${mine.bonus?` (⚡${mine.bonus} por rapidez)`:''}`:'Ronda resuelta. No llegó vuestra respuesta.'}
+    else if(!t)s.textContent='Escribe el nombre del equipo para inscribirte.';
+    else if(!registered)s.textContent='Inscribiendo…';
+    else if(state.phase==='paused')s.textContent='Pausa.';
+    else if(!state.open)s.textContent=state.phase==='idle'||!state.r?'¡Inscritos! Esperando a que empiece la partida.':'Ronda cerrada. Espera a la siguiente.';
     else if(tl===0)s.textContent='¡Tiempo!';
-    else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">Enviada.</b> Puedes cambiarla hasta que acabe el tiempo.';
-    else s.textContent=pick?'Pulsa Enviar respuesta.':'Toca el mapa para colocar tu regalo.';
-    code.value=pick&&tn&&state.r?`GEO R${state.r} | ${tn} | ${pick.lat.toFixed(5)}, ${pick.lng.toFixed(5)}`:''}
-  team.addEventListener('input',update);
-  send.addEventListener('click',async()=>{const tn=team.value.replace(/[|\n]/g,' ').trim();send.disabled=true;
-    try{await Net.send({k:'guess',gid:state.gid,r:state.r,team:tn,lat:pick.lat,lng:pick.lng});sentFor=state.r;toast('¡Regalo enviado!')}
+    else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">Enviada.</b> Puedes cambiarla hasta que acabe el tiempo. Cuanto antes, más puntos.';
+    else s.textContent=pick?'Pulsa Enviar respuesta.':'Toca el mapa para colocar tu regalo. Cuanto antes, más puntos.';
+    code.value=pick&&t&&state.r?`GEO R${state.r} | ${t} | ${pick.lat.toFixed(5)}, ${pick.lng.toFixed(5)}`:''}
+  team.addEventListener('input',()=>{registered=false;update()});team.addEventListener('change',hello);team.addEventListener('keydown',e=>{if(e.key==='Enter')team.blur()});
+  hintBtn.addEventListener('click',()=>{usedHint=state.r;$('#hintbox').innerHTML='💡 '+esc(state.hint);$('#hintbox').hidden=false;sentFor=null;update()});
+  send.addEventListener('click',async()=>{send.disabled=true;
+    try{await Net.send({k:'guess',gid:state.gid,r:state.r,team:tn(),id:myId,hint:usedHint===state.r,lat:pick.lat,lng:pick.lng});sentFor=state.r;toast('¡Regalo enviado!')}
     catch(e){toast('No se pudo enviar. Usa la opción de copiar y pégalo en el chat.')}update()});
   $('#copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.value);toast('Copiado. Pégalo en el chat de Meet.')}catch(e){code.select()}});
-  function apply(m){if(m.k!=='state')return;const newRound=m.r!==state.r||m.gid!==state.gid;state=m;
-    if(newRound){pick=null;sentFor=null;map.home()}
-    $('#rev').hidden=!(m.revealed&&m.answer);if(m.revealed&&m.answer){const res=m.results||[];$('#rev').textContent=m.answer.name+(res.length?` · Gana ${res[0].team}`:'');map.fit([m.answer,...res])}
-    $('#final').hidden=!m.final;if(m.final)$('#final').innerHTML=finalHTML(m.final);
+  function apply(m,live){
+    if(m.k==='dup'&&m.id===myId){registered=false;if(live){toast('Ese nombre ya lo usa otro equipo. Elige otro.');team.value='';team.focus()}update();return}
+    if(m.k==='ok'&&m.id===myId){registered=true;update();return}
+    if(m.k!=='state')return;const newRound=m.r!==state.r||m.gid!==state.gid;state=m;
+    if(newRound){pick=null;sentFor=null;usedHint=null;$('#hintbox').hidden=true;map.home()}
+    if(m.phase==='play'&&!pick)map.set({markers:[],lines:[]});
+    $('#rev').hidden=!(m.revealed&&m.answer);if(m.revealed&&m.answer){const res=m.results||[];$('#rev').textContent=m.answer.name+(res.length?` · Gana ${res[0].team}`:'');map.fit([m.answer,...res]);
+      const d=res.find(x=>x.km<1);const key=m.gid+':'+m.r;if(d&&live&&dianaShown!==key){dianaShown=key;setTimeout(()=>{banner(`¡DIANA!<small>${esc(d.team)} a ${fmtKm(d.km)}</small>`);boom(false)},3500)}}
+    if(m.revealed)$('#hintbox').hidden=true;
+    $('#final').hidden=!m.final;if(m.final){$('#final').innerHTML=finalHTML(m.final);if(live&&finalShown!==m.gid){finalShown=m.gid;boom(true)}}
     drawMine();update()}
-  Net.history().then(h=>{const last=h.filter(m=>m.k==='state').pop();if(last)apply(last)});
-  Net.listen(apply,netDot);
-  setInterval(update,500);update();
+  Net.history().then(h=>{for(const m of h)if(m.k==='ok'||m.k==='dup')apply(m,false);const last=h.filter(m=>m.k==='state').pop();if(last)apply(last,false);hello()});
+  Net.listen(m=>apply(m,true),netDot);
+  setInterval(hello,20000);setInterval(update,500);update();
 }
 
 /* ---------- MASTER VIEW ---------- */
 function master(){
-  const KEY='geo-master3:'+SALA;const S=LS.get(KEY,null)||LS.get('geo-master3',null)||{places:DEFAULT_PLACES,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}};
-  if(!S.gid)S.gid=Math.random().toString(36).slice(2,10);S.closeAt=S.closeAt||{};S.revealSecs=S.revealSecs||15;
-  const save=()=>LS.set(KEY,S);
-  let animKey='';let phase='idle',phaseEnd=0,pausedLeft=0,pausedFrom='',left=S.secs,lastBeep=-1,audio=null;
+  const KEY='geo-master3:'+SALA;
+  const S=LS.get(KEY,null)||LS.get('geo-master3',null)||{places:DEFAULT_PLACES,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}};
+  if(!S.gid)S.gid=Math.random().toString(36).slice(2,10);S.closeAt=S.closeAt||{};S.startAt=S.startAt||{};S.teams=S.teams||{};S.revealSecs=S.revealSecs||15;
+  const ph=S.ph||{};let phase=ph.phase||'idle',phaseEnd=ph.phaseEnd||0,pausedLeft=ph.pausedLeft||0,pausedFrom=ph.pausedFrom||'',left=S.secs,lastBeep=-1,animKey='',replaying=false,showQR=false;
+  const save=()=>{S.ph={phase,phaseEnd,pausedLeft,pausedFrom};LS.set(KEY,S)};
+  const seen={},acked=new Set();
   $('#app').innerHTML=`
   <header>
     <div class="brand">Geo<i>Navidad</i></div><span class="tag">Master</span><span class="tag" id="net">Conectando…</span><div class="spacer"></div>
-    <span class="hint">Enlace para los líderes: <span class="mono" id="llink"></span></span>
+    <span class="hint">Sala <b class="mono">${esc(SALA)}</b></span><button class="btn" id="qrBtn">Invitar · QR</button>
   </header>
   <div class="stage">
-    <div class="mapwrap" id="map"><div class="roundbig" id="rbig"></div><div class="reveal" id="rev" hidden></div><div class="final" id="final" hidden></div></div>
+    <div class="mapwrap" id="map"><div class="roundbig" id="rbig"></div><div class="reveal" id="rev" hidden></div><div class="lobby" id="lobby" hidden></div><div class="final" id="final" hidden></div></div>
     <aside class="rail">
       <section class="card"><h3>Ronda</h3><div class="rounds" id="rounds"></div></section>
       <section class="card"><h3>Temporizador</h3>
@@ -253,95 +317,138 @@ function master(){
         <div class="timer" id="timer">0:30</div>
         <div class="row"><button class="btn gold" id="tStart">Empezar partida</button><button class="btn" id="tSkip">Saltar</button></div>
       </section>
+      <section class="card"><h3>Equipos · <span id="tcount">0</span></h3><div class="chips" id="chips"></div></section>
       <section class="card"><h3>Respuestas · <span id="cnt">0</span></h3><div id="teams"></div></section>
       <section class="card"><h3>Clasificación</h3><div id="board"></div></section>
-      <section class="card"><details class="cfg"><summary>Lugares y ajustes</summary>
+      <section class="card"><details class="cfg" id="cfgBox"><summary>Lugares y ajustes</summary>
         <p class="warn">Contiene las soluciones. No lo abras con la pantalla compartida.</p>
-        <div id="cfg" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div class="row" style="margin-top:6px"><input class="t" id="q" placeholder="Buscar un sitio: Plaza Mayor, Madrid" style="flex:1;min-width:0"><button class="btn" id="qBtn">Buscar</button></div>
+        <div id="qRes" class="qres"></div>
+        <div id="cfg" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
         <div class="row" style="margin-top:8px">
           <label class="f">Segundos por ronda<input class="t mono" id="secs" type="number" min="10" max="600" value="${S.secs}"></label>
           <label class="f">Segundos de resultados<input class="t mono" id="rsecs" type="number" min="5" max="120" value="${S.revealSecs}"></label></div>
         <label class="f" style="margin-top:8px">Respuestas por chat (si alguien no puede enviar)<textarea class="t mono" id="paste" rows="2" placeholder="Pega aquí el chat de Meet"></textarea></label>
-        <div class="row" style="margin-top:8px"><button class="btn" id="addPlace">Añadir lugar</button><button class="btn red" id="wipe">Nueva partida</button></div>
+        <div class="row" style="margin-top:8px"><button class="btn" id="newSala">Crear sala nueva</button><button class="btn red" id="wipe">Reiniciar partida</button></div>
         <p class="hint" id="wipeMsg"></p>
       </details></section>
     </aside>
   </div>`;
   const map=makeMap($('#map'));
+  // ---- equipos ----
+  function register(name,id){const c=canon(name);if(!c)return null;const t=S.teams[c];
+    if(!t){S.teams[c]={name:String(name).trim().slice(0,24),id:id||null};save();if(id&&!replaying){acked.add(id+c);Net.send({k:'ok',id}).catch(()=>{})}return S.teams[c].name}
+    if(id&&t.id&&t.id!==id){if(!replaying)Net.send({k:'dup',id,team:name}).catch(()=>{});return null}
+    if(id&&!t.id){t.id=id;save()}
+    if(id&&!replaying&&!acked.has(id+c)){acked.add(id+c);Net.send({k:'ok',id}).catch(()=>{})}
+    return t.name}
+  function onMsg(m){
+    if(m.k==='hello'){const n=register(m.team,m.id);if(n){seen[canon(n)]=Date.now()-(replaying?(Date.now()/1000-m._t)*1000:0);renderChips()}return}
+    if(m.k!=='guess'||m.gid!==S.gid)return;const r=+m.r;if(!(r>=1&&r<=S.places.length)||S.revealed[r])return;
+    if(S.closeAt[r]&&m._t>S.closeAt[r]+3)return;const lat=+m.lat,lng=+m.lng;if(!(Math.abs(lat)<=90&&Math.abs(lng)<=180))return;
+    const name=register(m.team,m.id);if(!name)return;seen[canon(name)]=m._t?m._t*1000:Date.now();
+    (S.guesses[r]=S.guesses[r]||{})[name]={lat,lng,t:m._t||Date.now()/1000,hint:!!m.hint};save();if(!replaying){renderTeams();renderChips();renderLobby()}}
   function allTeams(){const s=new Set();for(const r in S.guesses)for(const t in S.guesses[r])s.add(t);return [...s].sort((a,b)=>a.localeCompare(b,'es'))}
-  function colorOf(name){const i=allTeams().indexOf(name);return PALETTE[(i<0?0:i)%PALETTE.length]}
+  function colorOf(name){const names=Object.values(S.teams).map(t=>t.name);const i=names.indexOf(name);return PALETTE[(i<0?allTeams().indexOf(name):i)%PALETTE.length]||PALETTE[0]}
   function results(r){const pl=S.places[r-1];const g=S.guesses[r]||{};if(!pl)return[];
-    return Object.entries(g).map(([team,ll])=>{const km=haversine(pl,ll);return{team,ll,km,pts:score(km)}}).sort((a,b)=>a.km-b.km)}
-  function totals(){const tot={};for(const t of allTeams())tot[t]=0;for(const r in S.revealed){if(!S.revealed[r])continue;for(const x of results(+r))tot[x.team]+=x.pts}
-    return Object.entries(tot).sort((a,b)=>b[1]-a[1]).map(([team,pts])=>({team,pts,color:colorOf(team)}))}
+    return Object.entries(g).map(([team,v])=>{const km=haversine(pl,v);let pts=Math.round(score(km)*(v.hint?.8:1));let bonus=0;
+      if(S.startAt[r]&&km<2000){const frac=Math.max(0,Math.min(1,(S.startAt[r]+S.secs-(v.t||0))/S.secs));bonus=Math.round(500*frac)}
+      return{team,ll:{lat:v.lat,lng:v.lng},km,pts:pts+bonus,bonus,hint:!!v.hint}}).sort((a,b)=>b.pts-a.pts||a.km-b.km)}
+  function totals(upTo){const tot={};for(const t of allTeams())tot[t]=0;for(const r in S.revealed){if(!S.revealed[r]||(upTo&&+r>upTo))continue;for(const x of results(+r))tot[x.team]+=x.pts}
+    return Object.entries(tot).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([team,pts])=>({team,pts,color:colorOf(team)}))}
+  // ---- render ----
   function renderRounds(){$('#rounds').innerHTML=S.places.map((_,i)=>`<button class="${i+1===S.round?'on':''} ${S.revealed[i+1]?'done':''}" data-r="${i+1}" aria-label="Ronda ${i+1}">${i+1}</button>`).join('');
     $('#rbig').innerHTML=`<small>Ronda</small>${S.round} / ${S.places.length}`}
-  function renderTeams(){const r=S.round,rev=S.revealed[r];const g=S.guesses[r]||{};$('#cnt').textContent=Object.keys(g).length;
-    if(!rev){$('#teams').innerHTML=Object.keys(g).length?`<table><tr><th>Equipo</th><th class="n">Estado</th></tr>${Object.keys(g).sort().map(t=>`<tr><td><span class="dot" style="background:${colorOf(t)}"></span>${esc(t)}</td><td class="n" style="color:var(--ok)">recibida</td></tr>`).join('')}</table>`:'<p class="hint">Aún no hay respuestas de esta ronda.</p>';return}
-    const res=results(r);$('#teams').innerHTML=res.length?`<table><tr><th>Equipo</th><th class="n">Distancia</th><th class="n">Puntos</th></tr>${res.map(x=>`<tr><td><span class="dot" style="background:${colorOf(x.team)}"></span>${esc(x.team)}</td><td class="n">${fmtKm(x.km)}</td><td class="n">${x.pts}</td></tr>`).join('')}</table>`:'<p class="hint">Nadie respondió en esta ronda.</p>'}
-  function boardHTML(rows){return rows.length?`<table><tr><th>#</th><th>Equipo</th><th class="n">Total</th></tr>${rows.map((x,i)=>`<tr><td class="mono">${i+1}</td><td><span class="dot" style="background:${x.color}"></span>${esc(x.team)}</td><td class="n">${x.pts.toLocaleString('es-ES')}</td></tr>`).join('')}</table>`:'<p class="hint">Se rellena al revelar cada ronda.</p>'}
-  function renderBoard(){$('#board').innerHTML=boardHTML(totals())}
+  function online(){const now=Date.now();return Object.values(S.teams).filter(t=>now-(seen[canon(t.name)]||0)<75000)}
+  function renderChips(){const on=new Set(online().map(t=>t.name));const all=[...new Set([...on,...allTeams()])].map(name=>({name}));$('#tcount').textContent=on.size;
+    $('#chips').innerHTML=all.length?all.map(t=>`<span class="chip ${on.has(t.name)?'on':''}"><span class="dot" style="background:${colorOf(t.name)}"></span>${esc(t.name)}</span>`).join(''):'<p class="hint">Aún no hay equipos. Comparte el enlace o el QR.</p>';renderLobby()}
+  function renderLobby(){const show=phase==='idle'||showQR;const el=$('#lobby');el.hidden=!show;if(!show)return;const on=online();
+    el.innerHTML=`<div class="lbox"><div class="ltitle">¡Únete a GeoNavidad!</div><div class="lgrid"><div class="qr">${qrSVG(leaderLink())}</div>
+      <div><p class="hint">Escanea el código o entra en</p><p class="mono llink">${esc(leaderLink())}</p><button class="btn" id="copyLink">Copiar enlace</button>
+      <p class="lcount"><b>${on.length}</b> equipo${on.length===1?'':'s'} conectado${on.length===1?'':'s'}</p><div class="chips">${on.map(t=>`<span class="chip on pop"><span class="dot" style="background:${colorOf(t.name)}"></span>${esc(t.name)}</span>`).join('')}</div></div></div>
+      ${showQR&&phase!=='idle'?'<button class="btn" id="closeQR" style="margin-top:10px">Cerrar</button>':''}</div>`;
+    const cl=$('#copyLink');if(cl)cl.onclick=async()=>{try{await navigator.clipboard.writeText(leaderLink());toast('Enlace copiado')}catch(e){toast(leaderLink())}};
+    const cq=$('#closeQR');if(cq)cq.onclick=()=>{showQR=false;renderLobby()}}
+  function renderTeams(){const r=S.round,rev=S.revealed[r];const g=S.guesses[r]||{};$('#cnt').textContent=Object.keys(g).length+(online().length?' / '+online().length:'');
+    if(!rev){$('#teams').innerHTML=Object.keys(g).length?`<table><tr><th>Equipo</th><th class="n">Estado</th></tr>${Object.keys(g).sort().map(t=>`<tr><td><span class="dot" style="background:${colorOf(t)}"></span>${esc(t)}${g[t].hint?' 💡':''}</td><td class="n" style="color:var(--ok)">recibida</td></tr>`).join('')}</table>`:'<p class="hint">Aún no hay respuestas de esta ronda.</p>';return}
+    const res=results(r);$('#teams').innerHTML=res.length?`<table><tr><th>Equipo</th><th class="n">Distancia</th><th class="n">Puntos</th></tr>${res.map(x=>`<tr><td><span class="dot" style="background:${colorOf(x.team)}"></span>${esc(x.team)}${x.hint?' 💡':''}</td><td class="n">${fmtKm(x.km)}</td><td class="n">${x.pts}${x.bonus?`<small class="bon">⚡${x.bonus}</small>`:''}</td></tr>`).join('')}</table>`:'<p class="hint">Nadie respondió en esta ronda.</p>'}
+  function renderBoard(){const box=$('#board');const before={};box.querySelectorAll('tr[data-t]').forEach(tr=>before[tr.dataset.t]=tr.getBoundingClientRect().top);
+    const rows=totals();const lastRev=Math.max(0,...Object.keys(S.revealed).filter(k=>S.revealed[k]).map(Number));const prev=lastRev?totals(lastRev-1):[];const prevRank={};prev.forEach((x,i)=>prevRank[x.team]=i);
+    box.innerHTML=rows.length?`<table><tr><th>#</th><th>Equipo</th><th class="n">Total</th></tr>${rows.map((x,i)=>{const p=prevRank[x.team];const mv=p===undefined||lastRev<=1?'':p>i?`<span class="up">▲${p-i}</span>`:p<i?`<span class="down">▼${i-p}</span>`:'';
+      return `<tr data-t="${esc(x.team)}"><td class="mono">${i+1}</td><td><span class="dot" style="background:${x.color}"></span>${esc(x.team)} ${mv}</td><td class="n">${x.pts.toLocaleString('es-ES')}</td></tr>`}).join('')}</table>`:'<p class="hint">Se rellena al revelar cada ronda.</p>';
+    box.querySelectorAll('tr[data-t]').forEach(tr=>{const b=before[tr.dataset.t];if(b===undefined)return;const d=b-tr.getBoundingClientRect().top;if(!d)return;tr.animate([{transform:`translateY(${d}px)`},{transform:'none'}],{duration:900,easing:'cubic-bezier(.2,.8,.2,1)'})})}
   function renderMap(){const r=S.round,pl=S.places[r-1];
-    if(S.revealed[r]&&pl){const res=results(r);
-      const key=S.gid+':'+r,first=animKey!==key;animKey=key;const rr=res.map(x=>({lat:x.ll.lat,lng:x.ll.lng,color:colorOf(x.team),team:x.team,km:x.km,pts:x.pts}));
-      if(first){map.fit([pl,...rr]);setTimeout(()=>map.animate(pl,rr,false),1100)}else map.animate(pl,rr,true);
-      $('#rev').textContent=pl.name+(res.length?` · Gana ${res[0].team} (${fmtKm(res[0].km)})`:'');$('#rev').hidden=false}
+    if(S.revealed[r]&&pl){const res=results(r);const key=S.gid+':'+r,first=animKey!==key;animKey=key;
+      const rr=res.map(x=>({lat:x.ll.lat,lng:x.ll.lng,color:colorOf(x.team),team:x.team,km:x.km,pts:x.pts}));
+      if(first&&phase==='reveal'){map.fit([pl,...rr]);setTimeout(()=>{map.animate(pl,rr,false);SFX.jingle()},1100);
+        const d=res.find(x=>x.km<1);if(d)setTimeout(()=>{banner(`¡DIANA!<small>${esc(d.team)} a ${fmtKm(d.km)}</small>`);boom(false);SFX.diana()},1100+200*rr.length+1900)}
+      else{if(first)map.fit([pl,...rr]);map.animate(pl,rr,true)}
+      $('#rev').textContent=pl.name+(res.length?` · Gana ${res[0].team}`:'');$('#rev').hidden=false}
     else{map.set({markers:[],lines:[]});$('#rev').hidden=true}
     $('#final').hidden=phase!=='final';if(phase==='final')$('#final').innerHTML=finalHTML(totals())}
-  function renderCfg(){$('#cfg').innerHTML=S.places.map((p,i)=>`<div class="cfgrow"><span class="mono">${i+1}</span><input class="t" id="pn${i}" data-i="${i}" data-k="name" value="${esc(p.name)}" aria-label="Lugar ${i+1}"><input class="t mono" id="pa${i}" data-i="${i}" data-k="lat" value="${p.lat}" aria-label="Latitud ${i+1}"><input class="t mono" id="po${i}" data-i="${i}" data-k="lng" value="${p.lng}" aria-label="Longitud ${i+1}"></div>`).join('')+'<p class="hint">En Google Maps, clic derecho sobre el sitio y pulsa las coordenadas para copiarlas; pégalas en la casilla de latitud.</p>'}
-  function all(){renderRounds();renderTeams();renderBoard();renderMap()}
+  function renderCfg(){$('#cfg').innerHTML=S.places.map((p,i)=>`<div class="cfgcard"><div class="cfgrow"><span class="mono">${i+1}</span><input class="t" id="pn${i}" data-i="${i}" data-k="name" value="${esc(p.name)}" aria-label="Lugar ${i+1}"><input class="t mono" id="pa${i}" data-i="${i}" data-k="lat" value="${p.lat}" aria-label="Latitud ${i+1}"><input class="t mono" id="po${i}" data-i="${i}" data-k="lng" value="${p.lng}" aria-label="Longitud ${i+1}"></div>
+      <div class="cfgrow2"><input class="t" id="ph${i}" data-i="${i}" data-k="hint" value="${esc(p.hint||'')}" placeholder="Pista opcional (ej.: Está en Europa)" aria-label="Pista ${i+1}"><button class="btn mini" data-mv="${i}" aria-label="Subir">↑</button><button class="btn mini" data-del="${i}" aria-label="Quitar">✕</button></div></div>`).join('')}
+  function all(){renderRounds();renderTeams();renderBoard();renderMap();renderChips()}
   // ---- red ----
   function publish(){const r=S.round,pl=S.places[r-1],rev=!!S.revealed[r];
-    const res=rev?results(r).map(x=>({team:x.team,lat:x.ll.lat,lng:x.ll.lng,km:x.km,pts:x.pts,color:colorOf(x.team)})):null;
-    Net.send({k:'state',gid:S.gid,r,total:S.places.length,phase,open:phase==='play',endAt:phase==='play'?phaseEnd:0,revealed:rev,
+    const res=rev?results(r).map(x=>({team:x.team,lat:x.ll.lat,lng:x.ll.lng,km:x.km,pts:x.pts,bonus:x.bonus,color:colorOf(x.team)})):null;
+    Net.send({k:'state',gid:S.gid,r,total:S.places.length,phase,open:phase==='play',endAt:phase==='play'?phaseEnd:0,revealed:rev,hint:phase==='play'&&pl&&pl.hint?pl.hint:null,
       answer:rev&&pl?{name:pl.name,lat:pl.lat,lng:pl.lng}:null,results:res,final:phase==='final'?totals():null})
       .catch(()=>toast('No llega la conexión: los líderes pueden pegar la respuesta en el chat.'))}
-  function onGuess(m){if(m.k!=='guess'||m.gid!==S.gid)return;const r=+m.r;if(!(r>=1&&r<=S.places.length)||S.revealed[r])return;
-    if(S.closeAt[r]&&m._t>S.closeAt[r]+3)return;const lat=+m.lat,lng=+m.lng;if(!(Math.abs(lat)<=90&&Math.abs(lng)<=180))return;
-    const team=String(m.team||'').replace(/[|\n]/g,' ').trim().slice(0,24);if(!team)return;(S.guesses[r]=S.guesses[r]||{})[team]={lat,lng};save();all()}
-  // ---- motor de la partida ----
-  function beep(f,d){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=f;o.connect(g);g.connect(audio.destination);g.gain.setValueAtTime(.2,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.start();o.stop(audio.currentTime+d)}catch(e){}}
-  function startRound(){map.home();phase='play';phaseEnd=Date.now()+S.secs*1000;lastBeep=-1;delete S.closeAt[S.round];S.revealed[S.round]=false;delete S.guesses[S.round];save();all();publish()}
+  // ---- motor ----
+  function startRound(){map.home();showQR=false;phase='play';phaseEnd=Date.now()+S.secs*1000;lastBeep=-1;delete S.closeAt[S.round];S.revealed[S.round]=false;delete S.guesses[S.round];S.startAt[S.round]=Date.now()/1000;save();all();publish()}
   function reveal(){phase='reveal';phaseEnd=Date.now()+S.revealSecs*1000;S.revealed[S.round]=true;save();all();publish()}
-  function next(){if(S.round<S.places.length){S.round++;startRound()}else{phase='final';save();all();publish();beep(660,.3);setTimeout(()=>beep(880,.5),300)}}
+  function next(){if(S.round<S.places.length){S.round++;startRound()}else{phase='final';save();all();publish();SFX.fanfare();boom(true)}}
   function loop(){const now=Date.now();
-    if(phase==='play'){left=Math.max(0,Math.ceil((phaseEnd-now)/1000));if(left<=5&&left>0&&left!==lastBeep){beep(880,.08);lastBeep=left}
-      if(now>=phaseEnd){beep(440,.9);S.closeAt[S.round]=now/1000;phase='grace';phaseEnd=now+2500;save();publish()}}
+    if(phase==='play'){left=Math.max(0,Math.ceil((phaseEnd-now)/1000));if(left<=5&&left>0&&left!==lastBeep){SFX.beep(880,.08);lastBeep=left}
+      if(now>=phaseEnd){SFX.beep(440,.6);S.closeAt[S.round]=now/1000;phase='grace';phaseEnd=now+2500;save();publish()}}
     else if(phase==='grace'){left=0;if(now>=phaseEnd)reveal()}
     else if(phase==='reveal'){left=Math.max(0,Math.ceil((phaseEnd-now)/1000));if(now>=phaseEnd)next()}
     paint()}
   function paint(){const el=$('#timer'),lb=$('#tlabel'),bt=$('#tStart');const mm=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
-    const map={idle:['Pulsa Empezar partida',mm(S.secs),'Empezar partida'],play:['Tiempo para responder',mm(left),'Pausa'],grace:['¡Tiempo!','0:00','Pausa'],
+    const M={idle:['Pulsa Empezar partida',mm(S.secs),'Empezar partida'],play:['Tiempo para responder',mm(left),'Pausa'],grace:['¡Tiempo!','0:00','Pausa'],
       reveal:['Resultados · siguiente ronda en',mm(left),'Pausa'],paused:['En pausa',mm(Math.ceil(pausedLeft/1000)),'Continuar'],final:['Partida terminada','FIN','Jugar otra vez']};
-    const [l,t,b]=map[phase];lb.textContent=l;el.textContent=t;bt.textContent=b;el.className='timer'+(phase==='play'&&left<=5?' low':'')+(phase==='grace'?' over':'')}
+    const [l,t,b]=M[phase]||M.idle;lb.textContent=l;el.textContent=t;bt.textContent=b;el.className='timer'+(phase==='play'&&left<=5?' low':'')+(phase==='grace'?' over':'')}
   try{const w=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),250)'],{type:'text/javascript'})));w.onmessage=()=>loop()}catch(e){setInterval(loop,250)}
-  $('#tStart').onclick=()=>{try{audio=audio||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  setInterval(renderChips,15000);
+  $('#tStart').onclick=()=>{SFX.init();
     if(phase==='idle')startRound();
     else if(phase==='final'){newGame();startRound()}
-    else if(phase==='paused'){phase=pausedFrom;phaseEnd=Date.now()+pausedLeft;publish()}
-    else{pausedFrom=phase==='grace'?'grace':phase;pausedLeft=Math.max(0,phaseEnd-Date.now());phase='paused';publish()}
+    else if(phase==='paused'){phase=pausedFrom;phaseEnd=Date.now()+pausedLeft;save();publish()}
+    else{pausedFrom=phase;pausedLeft=Math.max(0,phaseEnd-Date.now());phase='paused';save();publish()}
     paint()};
-  $('#tSkip').onclick=()=>{if(phase==='play'||phase==='reveal'||phase==='grace')phaseEnd=Date.now();else if(phase==='paused'){pausedLeft=0;phase=pausedFrom;phaseEnd=Date.now()}};
+  $('#tSkip').onclick=()=>{SFX.init();if(phase==='play'||phase==='reveal'||phase==='grace')phaseEnd=Date.now();else if(phase==='paused'){pausedLeft=0;phase=pausedFrom;phaseEnd=Date.now()}};
   $('#rounds').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.round=+b.dataset.r;phase='idle';save();all();publish();paint()};
+  $('#qrBtn').onclick=()=>{showQR=!showQR;renderLobby()};
   $('#secs').onchange=e=>{S.secs=Math.max(10,Math.min(600,+e.target.value||30));e.target.value=S.secs;save();paint()};
   $('#rsecs').onchange=e=>{S.revealSecs=Math.max(5,Math.min(120,+e.target.value||15));e.target.value=S.revealSecs;save()};
   const RE=/GEO\s*R(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/g;
-  function parse(text){let n=0,m;RE.lastIndex=0;while((m=RE.exec(text))){const r=+m[1],team=m[2].trim().slice(0,24),lat=+m[3],lng=+m[4];
-      if(!(r>=1&&r<=S.places.length)||Math.abs(lat)>90||Math.abs(lng)>180||S.revealed[r])continue;(S.guesses[r]=S.guesses[r]||{})[team]={lat,lng};n++}
+  function parse(text){let n=0,m;RE.lastIndex=0;while((m=RE.exec(text))){const r=+m[1],lat=+m[3],lng=+m[4];
+      if(!(r>=1&&r<=S.places.length)||Math.abs(lat)>90||Math.abs(lng)>180||S.revealed[r])continue;const name=register(m[2].trim().slice(0,24),null);if(!name)continue;(S.guesses[r]=S.guesses[r]||{})[name]={lat,lng,t:Date.now()/1000};n++}
     save();all();toast(n?`${n} respuesta(s) añadida(s).`:'No he encontrado respuestas con formato GEO R…')}
   $('#paste').addEventListener('paste',e=>{const txt=(e.clipboardData||window.clipboardData).getData('text');if(txt){e.preventDefault();parse(txt)}});
-  $('#cfg').addEventListener('change',e=>{const i=+e.target.dataset.i,k=e.target.dataset.k;if(isNaN(i))return;let v=e.target.value.trim();
+  $('#cfg').addEventListener('change',e=>{const i=+e.target.dataset.i,k=e.target.dataset.k;if(isNaN(i)||!k)return;let v=e.target.value.trim();
     if(k==='lat'&&v.includes(',')){const[a,b]=v.split(',').map(s=>+s.trim());if(!isNaN(a)&&!isNaN(b)){S.places[i].lat=a;S.places[i].lng=b}}
-    else if(k==='name')S.places[i].name=v;else if(!isNaN(+v))S.places[i][k]=+v;save();renderCfg();all()});
-  $('#addPlace').onclick=()=>{if(S.places.length>=10)return;S.places.push({name:'Nuevo lugar',lat:0,lng:0});save();renderCfg();all()};
-  function newGame(){S.guesses={};S.revealed={};S.closeAt={};S.round=1;S.gid=Math.random().toString(36).slice(2,10);phase='idle';save();all();publish()}
-  let armed=false;$('#wipe').onclick=()=>{if(!armed){armed=true;$('#wipeMsg').textContent='Pulsa otra vez para borrar respuestas y puntos.';$('#wipe').textContent='Confirmar';return}
-    armed=false;newGame();$('#wipe').textContent='Nueva partida';$('#wipeMsg').textContent='Partida reiniciada.';paint()};
+    else if(k==='name'||k==='hint')S.places[i][k]=v;else if(!isNaN(+v))S.places[i][k]=+v;save();renderCfg();all()});
+  $('#cfg').addEventListener('click',e=>{const mv=e.target.dataset.mv,del=e.target.dataset.del;
+    if(mv!==undefined&&+mv>0){const i=+mv;[S.places[i-1],S.places[i]]=[S.places[i],S.places[i-1]];save();renderCfg();all()}
+    if(del!==undefined&&S.places.length>1){S.places.splice(+del,1);if(S.round>S.places.length)S.round=S.places.length;save();renderCfg();all()}});
+  async function search(){const q=$('#q').value.trim();if(!q)return;$('#qRes').innerHTML='<p class="hint">Buscando…</p>';
+    try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=es&q='+encodeURIComponent(q));const js=await r.json();
+      $('#qRes').innerHTML=js.length?js.map((x,i)=>`<div class="qitem"><span>${esc(x.display_name)}</span><button class="btn mini" data-add="${i}">Añadir</button></div>`).join(''):'<p class="hint">Sin resultados. Prueba con otro nombre.</p>';
+      $('#qRes').onclick=e=>{const i=e.target.dataset.add;if(i===undefined)return;const x=js[+i];if(S.places.length>=12){toast('Máximo 12 lugares');return}
+        S.places.push({name:x.display_name.split(',').slice(0,2).join(',').trim(),lat:+(+x.lat).toFixed(5),lng:+(+x.lon).toFixed(5),hint:''});save();renderCfg();all();toast('Añadido como lugar '+S.places.length);$('#qRes').innerHTML='';$('#q').value=''}}
+    catch(e){$('#qRes').innerHTML='<p class="hint">No se pudo buscar ahora. Inténtalo de nuevo.</p>'}}
+  $('#qBtn').onclick=search;$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+  function newGame(){S.guesses={};S.revealed={};S.closeAt={};S.startAt={};S.round=1;S.gid=Math.random().toString(36).slice(2,10);phase='idle';save();all();publish()}
+  let armed=false;$('#wipe').onclick=()=>{if(!armed){armed=true;$('#wipeMsg').textContent='Pulsa otra vez para borrar respuestas y puntos (los equipos inscritos se mantienen).';$('#wipe').textContent='Confirmar';return}
+    armed=false;newGame();$('#wipe').textContent='Reiniciar partida';$('#wipeMsg').textContent='Partida reiniciada.';paint()};
+  $('#newSala').onclick=()=>{const code=Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);
+    LS.set('geo-master3:'+code,{places:S.places,secs:S.secs,revealSecs:S.revealSecs,round:1,guesses:{},revealed:{},closeAt:{}});location.href=location.pathname+'?sala='+code+'#master'};
   renderCfg();all();paint();
-  $('#llink').textContent=location.origin+location.pathname+location.search;
-  Net.history().then(h=>{h.forEach(onGuess);publish()});Net.listen(onGuess,netDot);
+  replaying=true;Net.history().then(h=>{h.forEach(onMsg);replaying=false;const now=Date.now();for(const [c,t] of Object.entries(S.teams))if(t.id&&now-(seen[c]||0)<120000){acked.add(t.id+c);Net.send({k:'ok',id:t.id}).catch(()=>{})}all();publish()});Net.listen(onMsg,netDot);
 }
-function finalHTML(rows){const medal=['🥇','🥈','🥉'];return `<div class="fbox"><div class="ftitle">¡Clasificación final!</div>${rows.length?rows.map((x,i)=>`<div class="frow${i===0?' win':''}"><span class="fpos">${medal[i]||i+1}</span><span class="dot" style="background:${x.color}"></span><span class="fteam">${esc(x.team)}</span><span class="fpts mono">${x.pts.toLocaleString('es-ES')}</span></div>`).join(''):'<p>No hubo respuestas.</p>'}</div>`}
+function finalHTML(rows){const medal=['🥇','🥈','🥉'];return `<div class="fbox"><div class="ftitle">¡Clasificación final!</div>${rows.length?rows.map((x,i)=>`<div class="frow${i===0?' win':''}" style="animation-delay:${(rows.length-i)*0.25}s"><span class="fpos">${medal[i]||i+1}</span><span class="dot" style="background:${x.color}"></span><span class="fteam">${esc(x.team)}</span><span class="fpts mono">${x.pts.toLocaleString('es-ES')}</span></div>`).join(''):'<p>No hubo respuestas.</p>'}</div>`}
 
 const HOLLY='<svg class="holly" viewBox="0 0 34 28" aria-hidden="true"><path d="M17 15 C12 4 4 6 1 3 C3 8 1 11 3 14 C6 13 9 16 9 19 C12 17 15 18 17 15Z" fill="#2f8a4e" stroke="#0e2a1c"/><path d="M17 15 C22 4 30 6 33 3 C31 8 33 11 31 14 C28 13 25 16 25 19 C22 17 19 18 17 15Z" fill="#2f8a4e" stroke="#0e2a1c"/><circle cx="14" cy="19" r="3.4" fill="#d42b38"/><circle cx="20" cy="19" r="3.4" fill="#d42b38"/><circle cx="17" cy="23.5" r="3.4" fill="#d42b38"/></svg>';
 new MutationObserver(()=>{const b=document.querySelector('.brand');if(b&&!b.querySelector('.holly'))b.insertAdjacentHTML('afterbegin',HOLLY)}).observe(document.getElementById('app'),{childList:true});
