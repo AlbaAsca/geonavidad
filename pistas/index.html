@@ -11,7 +11,8 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 .bar{height:8px;border-radius:4px;background:repeating-linear-gradient(-45deg,var(--red) 0 12px,var(--ink) 12px 24px);flex:none}
 .top{display:flex;align-items:center;justify-content:space-between;gap:2vw;flex:none}
 .tag{font-family:var(--xmas);font-size:6vh;color:var(--gold);line-height:1}
-.q{font-size:3.4vh;font-weight:800;text-align:right;max-width:60%}
+.q{font-size:3.4vh;font-weight:800;text-align:right;max-width:60%;opacity:0;transform:translateY(-6px);transition:opacity .6s,transform .6s}.q.show{opacity:1;transform:none}
+#credlist{columns:3;column-gap:2vw;font-size:1.3vh;color:var(--muted);text-align:left;max-width:92vw;max-height:70vh;overflow:hidden;margin-top:2vh}
 .pic{flex:1;min-height:0;border:4px solid var(--gold);border-radius:20px;overflow:hidden;box-shadow:inset 0 0 0 4px var(--red),0 20px 60px #0008;background:#000}
 .pic{position:relative}
 .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;opacity:0;transition:opacity .6s}
@@ -19,7 +20,7 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 .pista{position:absolute;left:14px;top:12px;z-index:2;background:var(--red);color:#fff;border:2px solid var(--gold);border-radius:12px;padding:4px 14px;font-weight:800;font-size:2.6vh}
 .prog{position:absolute;left:0;bottom:0;height:6px;background:var(--gold);width:0;z-index:2}
 .frames img{transition:none}
-.cred{position:absolute;right:10px;bottom:12px;z-index:2;background:#000a;color:#ddd;font-size:1.5vh;padding:2px 8px;border-radius:6px;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cred{display:none;position:absolute;right:10px;bottom:12px;z-index:2;background:#000a;color:#ddd;font-size:1.5vh;padding:2px 8px;border-radius:6px;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cover{align-items:center;justify-content:center;text-align:center}
 .cover h1{font-family:var(--xmas);font-size:13vh;margin:0;line-height:1}.cover h1 i{font-style:normal;color:var(--red);text-shadow:0 0 2px var(--ink)}
 .cover p{font-size:3.2vh;color:var(--muted);max-width:60ch;margin:1vh auto}
@@ -47,7 +48,7 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 <section class="slide round" data-r="4"><div class="bar"></div><div class="top"><div class="tag">Ronda 4</div><div class="q">Piedra rosa, bicis y vino caliente… ¿qué país será?</div></div><div class="pic"><span class="pista">Foto 1 de 24</span><div class="frames"></div><div class="cred"></div><div class="prog"></div></div></section>
 <section class="slide round" data-r="5"><div class="bar"></div><div class="top"><div class="tag">Ronda 5</div><div class="q">Rayas rojas y blancas, galletas de jengibre y mucho abrigo.</div></div><div class="pic"><span class="pista">Foto 1 de 24</span><div class="frames"></div><div class="cred"></div><div class="prog"></div></div></section>
 <section class="slide round" data-r="6"><div class="bar"></div><div class="top"><div class="tag">Ronda 6</div><div class="q">La más difícil: piedra antigua y mucha, mucha historia.</div></div><div class="pic"><span class="pista">Foto 1 de 24</span><div class="frames"></div><div class="cred"></div><div class="prog"></div></div></section>
-<section class="slide cover"><h1 style="font-size:7vh">Créditos de las fotos</h1><p style="font-size:2.4vh">Fotos de Wikimedia Commons (autor y licencia indicados en cada foto) y capturas de Google Street View (© Google).</p></section>
+<section class="slide cover"><h1 style="font-size:7vh">Créditos de las fotos</h1><p style="font-size:2.4vh">Fotos de Wikimedia Commons y capturas de Google Street View (© Google).</p><div id="credlist"></div></section>
 <section class="slide cover"><h1>¡Gracias por jugar!</h1><p>Mirad el podio final en la pantalla del juego.</p></section>
 <div class="count" id="count"></div>
 <div class="nav"><button id="prev">←</button><button id="next">→</button><button id="fs">Pantalla completa</button></div>
@@ -56,13 +57,16 @@ const OLD={"307326":1890,"6679467":1933,"8680178":1900,"11161332":1895,"18486877
 const strip=h=>{const d=document.createElement('div');d.innerHTML=h||'';return d.textContent.replace(/\s+/g,' ').trim()};
 const DATA={};
 function seq(r,web){const o=OWN[r].map(f=>({src:f,cred:'Captura de Google Street View · © Google'}));const w=web.slice(0,N-3);const mid=Math.min(w.length,Math.round(w.length/2));return [o[0],...w.slice(0,mid),o[1],...w.slice(mid),o[2]]}
-async function load(r){let web=[];try{const u='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1280&pageids='+IDS[r].join('|');const j=await (await fetch(u)).json();const pages=j.query.pages;web=IDS[r].map(id=>pages[id]).filter(p=>p&&p.imageinfo).map(p=>{const m=p.imageinfo[0].extmetadata||{};const name=(m.ObjectName&&strip(m.ObjectName.value))||p.title.replace('File:','');return{src:p.imageinfo[0].thumburl,cred:(OLD[p.pageid]?'📜 Foto antigua ('+OLD[p.pageid]+') · ':'')+'Foto: '+strip(m.Artist&&m.Artist.value||'Autor desconocido')+' · '+((m.LicenseShortName&&m.LicenseShortName.value)||'')+' · Wikimedia Commons'}})}catch(e){}
-  const list=seq(r,web);DATA[r]=list;const sl=document.querySelector('.slide[data-r="'+r+'"]');const fr=sl.querySelector('.frames');fr.innerHTML='';list.forEach((x,k)=>{const im=new Image();im.src=x.src;im.alt='Ronda '+r+', foto '+(k+1);if(k===0)im.className='on';fr.appendChild(im)});if(S[i]===sl)paintStage()}
+async function load(r){let web=[];try{const u='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1280&pageids='+IDS[r].join('|');const j=await (await fetch(u)).json();const pages=j.query.pages;web=IDS[r].map(id=>pages[id]).filter(p=>p&&p.imageinfo).map(p=>{const m=p.imageinfo[0].extmetadata||{};const name=(m.ObjectName&&strip(m.ObjectName.value))||p.title.replace('File:','');return{src:p.imageinfo[0].thumburl,cred:'Foto: '+strip(m.Artist&&m.Artist.value||'Autor desconocido')+' · '+((m.LicenseShortName&&m.LicenseShortName.value)||'')+' · Wikimedia Commons'}})}catch(e){}
+  const list=seq(r,web);DATA[r]=list;const sl=document.querySelector('.slide[data-r="'+r+'"]');const fr=sl.querySelector('.frames');fr.innerHTML='';list.forEach((x,k)=>{const im=new Image();im.src=x.src;im.alt='Ronda '+r+', foto '+(k+1);if(k===0)im.className='on';fr.appendChild(im)});if(S[i]===sl)paintStage();credits()}
 const S=[...document.querySelectorAll('.slide')];let i=0,st=0,auto=true,t0=0;
 function dur(){return st>=total()-3?LAST:STEP}
 function total(){const r=S[i].dataset.r;return r&&DATA[r]?DATA[r].length:N}
 function paintStage(){const sl=S[i];if(!sl.classList.contains('round'))return;const r=sl.dataset.r;const ims=sl.querySelectorAll('.frames img');ims.forEach((x,k)=>x.classList.toggle('on',k===st));sl.querySelector('.pista').textContent='Foto '+(st+1)+' de '+ims.length;const d=DATA[r]&&DATA[r][st];sl.querySelector('.cred').textContent=d?d.cred:''}
-function tick(){const sl=S[i];if(!sl||!sl.classList.contains('round'))return;const p=sl.querySelector('.prog');const T=total();if(auto&&st<T-1&&Date.now()-t0>=dur()){st++;t0=Date.now();paintStage()}p.style.width=((st+Math.min(1,(Date.now()-t0)/dur())*(st<T-1&&auto?1:0))/(T-1)*100)+'%'}
+function pos(){const T=total(),n=T-3,e=auto?Math.min(Date.now()-t0,dur()):0;return (st<n?st*STEP:n*STEP+(st-n)*LAST)+e}
+function qshow(){const sl=S[i];if(!sl||!sl.classList.contains('round'))return;const T=total();sl.querySelector('.q').classList.toggle('show',DATA[sl.dataset.r]&&pos()>=(T-3)*STEP+3*LAST-10000)}
+function credits(){const set=new Set();Object.keys(DATA).sort().forEach(r=>DATA[r].forEach(x=>{if(x.cred.startsWith('Foto: '))set.add(x.cred.slice(6).replace(' · Wikimedia Commons',''))}));const el=document.getElementById('credlist');if(el)el.textContent=[...set].join(' • ')}
+function tick(){qshow();const sl=S[i];if(!sl||!sl.classList.contains('round'))return;const p=sl.querySelector('.prog');const T=total();if(auto&&st<T-1&&Date.now()-t0>=dur()){st++;t0=Date.now();paintStage()}p.style.width=((st+Math.min(1,(Date.now()-t0)/dur())*(st<T-1&&auto?1:0))/(T-1)*100)+'%'}
 setInterval(tick,50);
 function go(n){i=Math.max(0,Math.min(S.length-1,n));st=0;t0=Date.now();S.forEach((s,k)=>s.classList.toggle('on',k===i));paintStage();document.getElementById('count').textContent=(i+1)+' / '+S.length+(auto?' · auto 1 s':' · manual');try{history.replaceState(null,'','#'+i)}catch(e){}}
 function next(){if(S[i].classList.contains('round')&&st<total()-1){st++;t0=Date.now();paintStage()}else go(i+1)}
