@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GeoNavidad · Pistas</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Bricolage+Grotesque:wght@500;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Montserrat:wght@200;300;400;500;600;700&display=swap">
 <style>
 :root{--night:#0e2a1c;--panel:#123524;--ink:#fff8ec;--muted:#b9d3c2;--gold:#f4c04e;--red:#d42b38;--xmas:"Mountains of Christmas",Georgia,serif;--ui:"Bricolage Grotesque",system-ui,sans-serif}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
@@ -32,6 +32,32 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 .count{position:fixed;left:2vw;bottom:1.2vh;opacity:.4;font-size:14px}
 #snow{position:fixed;inset:0;pointer-events:none;z-index:4}
 .embed .nav,.embed .count,.embed #snow{display:none}.embed .slide{padding:1.2vh 1.2vw 1.2vh}.embed .q{font-size:2.8vh;max-width:75%}.embed .tag{font-size:5vh}
+
+/* ===== Tema elegante rojo ===== */
+:root{--night:#4a0816;--panel:#5a0a1c;--ink:#fff;--muted:#f8d5dc;--gold:#f2d6a2;--red:#2a0811;--xmas:"Cormorant Garamond",Georgia,serif;--ui:"Montserrat",system-ui,sans-serif}
+body{background:radial-gradient(ellipse 90% 70% at 50% 0%,#d42a45 0%,#a8142f 45%,#6a0a1e 100%) fixed,#6a0a1e}
+body::before{content:"";position:fixed;left:0;right:0;bottom:0;height:150px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20170%22%20preserveAspectRatio%3D%22xMidYMax%20slice%22%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.95%22%3E%3Cpath%20d%3D%22M70%2026.0%20L54.599999999999994%2059.0%20H62.3%20L48.0%2083.2%20H63.4%20L43.599999999999994%20105.2%20H96.4%20L76.6%2083.2%20H92.0%20L77.7%2059.0%20H85.4%20Z%22/%3E%3Crect%20x%3D%2266.7%22%20y%3D%22105.2%22%20width%3D%226.6000000000000005%22%20height%3D%228.8%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.85%22%3E%3Cpath%20d%3D%22M120%2056.0%20L108.8%2080.0%20H114.4%20L104.0%2097.6%20H115.2%20L100.8%20113.6%20H139.2%20L124.8%2097.6%20H136.0%20L125.6%2080.0%20H131.2%20Z%22/%3E%3Crect%20x%3D%22117.6%22%20y%3D%22113.6%22%20width%3D%224.800000000000001%22%20height%3D%226.4%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%221%22%3E%3Cpath%20d%3D%22M250%208.0%20L231.8%2047.0%20H240.9%20L224.0%2075.6%20H242.2%20L218.8%20101.6%20H281.2%20L257.8%2075.6%20H276.0%20L259.1%2047.0%20H268.2%20Z%22/%3E%3Crect%20x%3D%22246.1%22%20y%3D%22101.6%22%20width%3D%227.800000000000001%22%20height%3D%2210.4%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.9%22%3E%3Cpath%20d%3D%22M300%2046.0%20L287.4%2073.0%20H293.7%20L282.0%2092.8%20H294.6%20L278.4%20110.8%20H321.6%20L305.4%2092.8%20H318.0%20L306.3%2073.0%20H312.6%20Z%22/%3E%3Crect%20x%3D%22297.3%22%20y%3D%22110.8%22%20width%3D%225.4%22%20height%3D%227.2%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%221%22%3E%3Cpath%20d%3D%22M1150%2018.0%20L1133.2%2054.0%20H1141.6%20L1126.0%2080.4%20H1142.8%20L1121.2%20104.4%20H1178.8%20L1157.2%2080.4%20H1174.0%20L1158.4%2054.0%20H1166.8%20Z%22/%3E%3Crect%20x%3D%221146.4%22%20y%3D%22104.4%22%20width%3D%227.199999999999999%22%20height%3D%229.6%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.9%22%3E%3Cpath%20d%3D%22M1210%2053.0%20L1198.1%2078.5%20H1204.05%20L1193.0%2097.2%20H1204.9%20L1189.6%20114.2%20H1230.4%20L1215.1%2097.2%20H1227.0%20L1215.95%2078.5%20H1221.9%20Z%22/%3E%3Crect%20x%3D%221207.45%22%20y%3D%22114.2%22%20width%3D%225.1%22%20height%3D%226.8%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%221%22%3E%3Cpath%20d%3D%22M1340%203.0%20L1321.1%2043.5%20H1330.55%20L1313.0%2073.2%20H1331.9%20L1307.6%20100.2%20H1372.4%20L1348.1%2073.2%20H1367.0%20L1349.45%2043.5%20H1358.9%20Z%22/%3E%3Crect%20x%3D%221335.95%22%20y%3D%22100.2%22%20width%3D%228.100000000000001%22%20height%3D%2210.8%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.85%22%3E%3Cpath%20d%3D%22M1395%2046.0%20L1382.4%2073.0%20H1388.7%20L1377.0%2092.8%20H1389.6%20L1373.4%20110.8%20H1416.6%20L1400.4%2092.8%20H1413.0%20L1401.3%2073.0%20H1407.6%20Z%22/%3E%3Crect%20x%3D%221392.3%22%20y%3D%22110.8%22%20width%3D%225.4%22%20height%3D%227.2%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.7%22%3E%3Cpath%20d%3D%22M560%2070.0%20L550.2%2091.0%20H555.1%20L546.0%20106.4%20H555.8%20L543.2%20120.4%20H576.8%20L564.2%20106.4%20H574.0%20L564.9%2091.0%20H569.8%20Z%22/%3E%3Crect%20x%3D%22557.9%22%20y%3D%22120.4%22%20width%3D%224.199999999999999%22%20height%3D%225.6%22/%3E%3C/g%3E%3Cg%20fill%3D%22%23fff%22%20opacity%3D%220.7%22%3E%3Cpath%20d%3D%22M880%2065.0%20L869.5%2087.5%20H874.75%20L865.0%20104.0%20H875.5%20L862.0%20119.0%20H898.0%20L884.5%20104.0%20H895.0%20L885.25%2087.5%20H890.5%20Z%22/%3E%3Crect%20x%3D%22877.75%22%20y%3D%22119.0%22%20width%3D%224.5%22%20height%3D%226.0%22/%3E%3C/g%3E%3Cpath%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%20d%3D%22M0%20120%20C180%2080%20320%20135%20520%20110%20S900%2070%201100%20112%20S1340%2090%201440%20104%20V170%20H0Z%22/%3E%3Cpath%20fill%3D%22%23fff%22%20d%3D%22M0%20140%20C220%20112%20420%20150%20720%20126%20S1180%20108%201440%20136%20V170%20H0Z%22/%3E%3C/svg%3E") bottom center/100% 100% no-repeat;pointer-events:none;opacity:.9}
+.embed body::before{height:90px}
+.bar{height:1px;border-radius:0;background:linear-gradient(90deg,transparent,#ffffffb0 20%,#ffffffb0 80%,transparent)}
+.tag{font-family:var(--xmas);font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#fff}
+.q{font-family:var(--xmas);font-style:italic;font-weight:600;letter-spacing:.01em;font-size:3.8vh}
+.pic{border:1px solid #ffffff80;border-radius:22px;box-shadow:0 24px 60px #2a081180;background:#1a0509;position:relative;z-index:1}
+.pista{background:#ffffffeb;color:#8e1230;border:0;border-radius:999px;font-size:1.7vh;letter-spacing:.2em;text-transform:uppercase;padding:6px 16px}
+.prog{background:#fff;height:3px}
+.cover h1{font-family:var(--xmas);font-weight:600;text-transform:uppercase;letter-spacing:.12em}.cover h1 i{color:var(--gold);text-shadow:none;text-transform:none;font-style:italic}
+.step{background:#5a0a1c59;border:1px solid #ffffff40;border-radius:20px;backdrop-filter:blur(6px)}
+.step b{font-family:var(--ui);font-size:1.6vh;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:.8vh}
+.nav button{border-radius:999px;background:transparent;border-color:#ffffffa0;letter-spacing:.1em}
+.slide{z-index:1}
+
+/* tipografía */
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-kerning:normal}
+.cover h1{font-weight:500;letter-spacing:.16em}.cover h1 i{font-weight:500;letter-spacing:.01em;margin-left:.12em}
+.cover p{font-weight:300;line-height:1.6;font-size:2.5vh;max-width:56ch;letter-spacing:.01em}
+.step{font-weight:400;line-height:1.5;font-size:2.1vh}
+.tag{font-weight:500;letter-spacing:.18em}
+.q{font-weight:500;font-size:3.6vh;line-height:1.2}
+.pista{font-weight:600;font-variant-numeric:tabular-nums}
 </style></head><body>
 <canvas id="snow"></canvas>
 <section class="slide cover on">
