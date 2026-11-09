@@ -124,6 +124,15 @@ details.cfg summary{cursor:pointer;font-weight:700}
 .qres{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .qitem{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
 .frow{animation:rise .6s both}
+.welcome{position:fixed;inset:0;z-index:2500;display:grid;place-items:center;background:#0e2a1cee;padding:16px max(16px,env(safe-area-inset-left,0px))}
+.wbox{width:min(460px,100%);background:var(--panel);border:2px solid var(--gold);border-radius:20px;padding:24px 22px;text-align:center;box-shadow:inset 0 6px 0 var(--red),0 20px 60px #0009;animation:podin .5s ease-out}
+.wtitle{font-family:var(--xmas);font-size:38px;line-height:1.1;color:var(--gold);margin-bottom:6px}
+.wsub{color:var(--muted);margin:6px 0 14px}
+#wform{display:flex;flex-direction:column;gap:10px}
+.wbig{font-size:20px!important;padding:14px 16px!important;width:100%}
+input.wbig{text-align:center}
+.werr{color:#ff8a80;min-height:1.2em;margin:4px 0 0;font-weight:700}
+.wok{font-size:22px;font-weight:800;margin:6px 0;color:var(--ok)}.wok b{color:var(--ink)}
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @media (max-width:600px){.lgrid{grid-template-columns:1fr}.qr{margin:0 auto}.diana{font-size:38px}}
 .gdist.done{animation:pop .35s ease-out}
@@ -236,7 +245,7 @@ function leader(){
   $('#app').innerHTML=`
   <header>
     <div class="brand">Geo<i>Navidad</i></div><span class="tag" id="net">Conectando…</span><div class="spacer"></div>
-    <label class="f">Equipo<input class="t" id="team" maxlength="24" placeholder="Nombre del equipo" value="${esc(st.team)}" autocomplete="off"></label>
+    <label class="f">Equipo<input class="t" id="team" maxlength="24" placeholder="Nombre del equipo" value="${esc(st.team)}" autocomplete="off" readonly></label>
     <span class="tag" id="me" hidden>✓ Inscrito</span>
   </header>
   <div class="stage"><div class="mapwrap" id="map"><div class="roundbig" id="rbig"><small>Ronda</small>–</div><div class="reveal" id="rev" hidden></div><div class="hintbox" id="hintbox" hidden></div><div class="final" id="final" hidden></div></div></div>
@@ -247,7 +256,14 @@ function leader(){
     <button class="btn gold" id="send" disabled>Enviar respuesta</button>
   </div>
   <details class="hint"><summary>¿No se envía? Copia el texto y pégalo en el chat de Meet</summary>
-    <div class="lbar" style="margin-top:6px"><input class="t mono code" id="code" readonly><button class="btn" id="copy">Copiar</button></div></details>`;
+    <div class="lbar" style="margin-top:6px"><input class="t mono code" id="code" readonly><button class="btn" id="copy">Copiar</button></div></details>
+  <div class="welcome" id="welcome"><div class="wbox">
+    <div class="wtitle">¡Bienvenidos a GeoNavidad!</div>
+    <div id="wform"><p class="wsub">Escribe el nombre de tu equipo para poder jugar</p>
+      <input class="t wbig" id="wname" maxlength="24" placeholder="Ej.: Los Renos Locos" autocomplete="off">
+      <button class="btn gold wbig" id="wgo">Inscribir equipo</button><p class="werr" id="werr"></p></div>
+    <div id="wdone" hidden><p class="wok">✓ ¡Inscritos como <b id="wteam"></b>!</p><p class="wsub">Esperando a que empiece la partida…<br>Mantén esta página abierta.</p><button class="btn" id="wchange">Cambiar nombre</button></div>
+  </div></div>`;
   const map=makeMap($('#map'),{onPick(ll){if(state.revealed||!state.open)return;pick=ll;sentFor=null;drawMine();update()}});
   const team=$('#team'),send=$('#send'),code=$('#code'),hintBtn=$('#hintBtn');
   const tn=()=>team.value.replace(/[|\n]/g,' ').trim().slice(0,24);
@@ -258,7 +274,7 @@ function leader(){
   function timeLeft(){return state.open&&state.endAt?Math.max(0,Math.ceil((state.endAt-Date.now())/1000)):null}
   function update(){const t=tn();LS.set('geo-leader',{team:t});
     const tl=timeLeft();send.disabled=!(pick&&t&&registered&&state.open&&tl>0);
-    team.readOnly=registered&&state.phase&&state.phase!=='idle'&&!state.final;
+    renderWelcome();
     $('#me').hidden=!registered;
     hintBtn.hidden=!(state.open&&state.hint&&usedHint!==state.r&&tl>0);
     const el=$('#ltimer');el.textContent=tl===null?'–:––':Math.floor(tl/60)+':'+String(tl%60).padStart(2,'0');el.className='timer mono'+(tl!==null&&tl<=5?' low':'');
@@ -274,15 +290,23 @@ function leader(){
     else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">Enviada.</b> Puedes cambiarla hasta que acabe el tiempo. Cuanto antes, más puntos.';
     else s.textContent=pick?'Pulsa Enviar respuesta.':'Toca el mapa para colocar tu regalo. Cuanto antes, más puntos.';
     code.value=pick&&t&&state.r?`GEO R${state.r} | ${t} | ${pick.lat.toFixed(5)}, ${pick.lng.toFixed(5)}`:''}
-  team.addEventListener('input',()=>{registered=false;update()});team.addEventListener('change',hello);team.addEventListener('keydown',e=>{if(e.key==='Enter')team.blur()});
+  const wname=$('#wname'),wgo=$('#wgo'),werr=$('#werr');wname.value=st.team||'';let retryH=null;
+  function join(){const t=wname.value.replace(/[|\n]/g,' ').trim().slice(0,24);if(t.length<2){werr.textContent='Escribe un nombre de al menos 2 letras.';wname.focus();return}
+    team.value=t;registered=false;werr.textContent='';wgo.disabled=true;wgo.textContent='Inscribiendo…';hello();clearInterval(retryH);
+    retryH=setInterval(()=>{if(registered)clearInterval(retryH);else hello()},10000);
+    setTimeout(()=>{if(!registered&&!werr.textContent)werr.textContent='Esperando respuesta del master… se reintenta solo.'},6000);update()}
+  wgo.onclick=join;wname.addEventListener('keydown',e=>{if(e.key==='Enter')join()});
+  $('#wchange').onclick=()=>{registered=false;wname.value=team.value;wgo.disabled=false;wgo.textContent='Inscribir equipo';update();wname.focus()};
+  function renderWelcome(){const started=state.r&&state.phase&&state.phase!=='idle';const show=!registered||(!started&&!state.final);
+    $('#welcome').hidden=!show;$('#wform').hidden=registered;$('#wdone').hidden=!registered;$('#wteam').textContent=tn()}
   hintBtn.addEventListener('click',()=>{usedHint=state.r;$('#hintbox').innerHTML='💡 '+esc(state.hint);$('#hintbox').hidden=false;sentFor=null;update()});
   send.addEventListener('click',async()=>{send.disabled=true;
     try{await Net.send({k:'guess',gid:state.gid,r:state.r,team:tn(),id:myId,hint:usedHint===state.r,lat:pick.lat,lng:pick.lng});sentFor=state.r;toast('¡Regalo enviado!')}
     catch(e){toast('No se pudo enviar. Usa la opción de copiar y pégalo en el chat.')}update()});
   $('#copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.value);toast('Copiado. Pégalo en el chat de Meet.')}catch(e){code.select()}});
   function apply(m,live){
-    if(m.k==='dup'&&m.id===myId){registered=false;if(live){toast('Ese nombre ya lo usa otro equipo. Elige otro.');team.value='';team.focus()}update();return}
-    if(m.k==='ok'&&m.id===myId){registered=true;update();return}
+    if(m.k==='dup'&&m.id===myId){if(m.team&&canon(m.team)!==canon(tn()))return;registered=false;clearInterval(retryH);if(live){werr.textContent='Ese nombre ya lo usa otro equipo. Elige otro.';wgo.disabled=false;wgo.textContent='Inscribir equipo';wname.select()}update();return}
+    if(m.k==='ok'&&m.id===myId){if(m.team&&canon(m.team)!==canon(tn()))return;registered=true;clearInterval(retryH);wgo.disabled=false;wgo.textContent='Inscribir equipo';update();return}
     if(m.k!=='state')return;const newRound=m.r!==state.r||m.gid!==state.gid;state=m;
     if(newRound){pick=null;sentFor=null;usedHint=null;$('#hintbox').hidden=true;map.home()}
     if(m.phase==='play'&&!pick)map.set({markers:[],lines:[]});
@@ -291,7 +315,7 @@ function leader(){
     if(m.revealed)$('#hintbox').hidden=true;
     $('#final').hidden=!m.final;if(m.final){$('#final').innerHTML=finalHTML(m.final);if(live&&finalShown!==m.gid){finalShown=m.gid;boom(true)}}
     drawMine();update()}
-  Net.history().then(h=>{for(const m of h)if(m.k==='ok'||m.k==='dup')apply(m,false);const last=h.filter(m=>m.k==='state').pop();if(last)apply(last,false);hello()});
+  Net.history().then(h=>{for(const m of h)if(m.k==='ok'||m.k==='dup')apply(m,false);const last=h.filter(m=>m.k==='state').pop();if(last)apply(last,false);if(st.team&&!registered)join();else update();setTimeout(()=>{if(!registered)wname.focus()},300)});
   Net.listen(m=>apply(m,true),netDot);
 setInterval(update,500);update();
 }
@@ -337,17 +361,17 @@ function master(){
   </div>`;
   const map=makeMap($('#map'));
   // ---- equipos ----
-  function register(name,id){const c=canon(name);if(!c)return null;const t=S.teams[c];
-    if(!t){S.teams[c]={name:String(name).trim().slice(0,24),id:id||null};save();if(id&&!replaying){acked.add(id+c);Net.send({k:'ok',id}).catch(()=>{})}return S.teams[c].name}
-    if(id&&t.id&&t.id!==id){if(!replaying)Net.send({k:'dup',id,team:name}).catch(()=>{});return null}
+  function register(name,id,ts){const c=canon(name);if(!c)return null;const t=S.teams[c];const now=ts?ts*1000:Date.now();
+    if(!t){S.teams[c]={name:String(name).trim().slice(0,24),id:id||null};save();if(id&&!replaying){acked.add(id+c);Net.send({k:'ok',id,team:S.teams[c].name}).catch(()=>{})}return S.teams[c].name}
+    if(id&&t.id&&t.id!==id){if(now-(seen[c]||0)<90000){if(!replaying)Net.send({k:'dup',id,team:name}).catch(()=>{});return null}t.id=id;save()}
     if(id&&!t.id){t.id=id;save()}
-    if(id&&!replaying&&!acked.has(id+c)){acked.add(id+c);Net.send({k:'ok',id}).catch(()=>{})}
+    if(id&&!replaying&&!acked.has(id+c)){acked.add(id+c);Net.send({k:'ok',id,team:t.name}).catch(()=>{})}
     return t.name}
   function onMsg(m){
-    if(m.k==='hello'){const n=register(m.team,m.id);if(n){seen[canon(n)]=Date.now()-(replaying?(Date.now()/1000-m._t)*1000:0);renderChips()}return}
+    if(m.k==='hello'){const n=register(m.team,m.id,m._t);if(n){seen[canon(n)]=Date.now()-(replaying?(Date.now()/1000-m._t)*1000:0);renderChips()}return}
     if(m.k!=='guess'||m.gid!==S.gid)return;const r=+m.r;if(!(r>=1&&r<=S.places.length)||S.revealed[r])return;
     if(S.closeAt[r]&&m._t>S.closeAt[r]+3)return;const lat=+m.lat,lng=+m.lng;if(!(Math.abs(lat)<=90&&Math.abs(lng)<=180))return;
-    const name=register(m.team,m.id);if(!name)return;seen[canon(name)]=m._t?m._t*1000:Date.now();
+    const name=register(m.team,m.id,m._t);if(!name)return;seen[canon(name)]=m._t?m._t*1000:Date.now();
     (S.guesses[r]=S.guesses[r]||{})[name]={lat,lng,t:m._t||Date.now()/1000,hint:!!m.hint};save();if(!replaying){renderTeams();renderChips();renderLobby()}}
   function allTeams(){const s=new Set();for(const r in S.guesses)for(const t in S.guesses[r])s.add(t);return [...s].sort((a,b)=>a.localeCompare(b,'es'))}
   function colorOf(name){const names=Object.values(S.teams).map(t=>t.name);const i=names.indexOf(name);return PALETTE[(i<0?allTeams().indexOf(name):i)%PALETTE.length]||PALETTE[0]}
@@ -447,7 +471,7 @@ function master(){
   $('#newSala').onclick=()=>{const code=Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);
     LS.set('geo-master3:'+code,{places:S.places,secs:S.secs,revealSecs:S.revealSecs,round:1,guesses:{},revealed:{},closeAt:{}});location.href=location.pathname+'?sala='+code+'#master'};
   renderCfg();all();paint();
-  replaying=true;Net.history().then(h=>{h.forEach(onMsg);replaying=false;const now=Date.now();for(const [c,t] of Object.entries(S.teams))if(t.id&&now-(seen[c]||0)<120000){acked.add(t.id+c);Net.send({k:'ok',id:t.id}).catch(()=>{})}all();publish()});Net.listen(onMsg,netDot);
+  replaying=true;Net.history().then(h=>{h.forEach(onMsg);replaying=false;const now=Date.now();for(const [c,t] of Object.entries(S.teams))if(t.id&&now-(seen[c]||0)<120000){acked.add(t.id+c);Net.send({k:'ok',id:t.id,team:t.name}).catch(()=>{})}all();publish()});Net.listen(onMsg,netDot);
 }
 function finalHTML(rows){const medal=['🥇','🥈','🥉'];return `<div class="fbox"><div class="ftitle">¡Clasificación final!</div>${rows.length?rows.map((x,i)=>`<div class="frow${i===0?' win':''}" style="animation-delay:${(rows.length-i)*0.25}s"><span class="fpos">${medal[i]||i+1}</span><span class="dot" style="background:${x.color}"></span><span class="fteam">${esc(x.team)}</span><span class="fpts mono">${x.pts.toLocaleString('es-ES')}</span></div>`).join(''):'<p>No hubo respuestas.</p>'}</div>`}
 
