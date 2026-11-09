@@ -31,6 +31,7 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 .nav button{background:var(--panel);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:6px 12px;font:700 15px var(--ui);cursor:pointer}
 .count{position:fixed;left:2vw;bottom:1.2vh;opacity:.4;font-size:14px}
 #snow{position:fixed;inset:0;pointer-events:none;z-index:4}
+.embed .nav,.embed .count,.embed #snow{display:none}.embed .slide{padding:1.2vh 1.2vw 1.2vh}.embed .q{font-size:2.8vh;max-width:75%}.embed .tag{font-size:5vh}
 </style></head><body>
 <canvas id="snow"></canvas>
 <section class="slide cover on">
@@ -75,6 +76,9 @@ addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' '].includes(e.key))
 document.getElementById('next').onclick=next;document.getElementById('prev').onclick=prev;
 function fs(){(document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{})}
 document.getElementById('fs').onclick=fs;
+
+if(new URLSearchParams(location.search).has('embed')){document.documentElement.classList.add('embed');auto=true;
+addEventListener('message',e=>{const d=e.data||{};if(d.gp==='round'){auto=true;go(Math.max(1,Math.min(6,+d.r||1)))}else if(d.gp==='pause'){auto=false}else if(d.gp==='resume'){auto=true;t0=Date.now()}});}
 go(+location.hash.slice(1)||0);[1,2,3,4,5,6].forEach(r=>load(r));
 (function(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const c=document.getElementById('snow'),x=c.getContext('2d');let W,H,f=[];
 function z(){W=c.width=innerWidth;H=c.height=innerHeight;f=Array.from({length:Math.round(W*H/18000)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2.2+.6,s:Math.random()*.6+.25,d:Math.random()*6}))}
