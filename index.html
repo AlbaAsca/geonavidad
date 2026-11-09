@@ -100,6 +100,7 @@ details.cfg summary{cursor:pointer;font-weight:700}
 .rpod div{display:grid;grid-template-columns:26px 14px 1fr auto auto;gap:8px;align-items:center;font-size:16px}
 .rpod .rpt{display:block;font-family:var(--xmas);color:var(--gold);font-size:20px}
 .rpod .pts{color:var(--gold)}
+.pistasF{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:1000;background:#0e2a1c;opacity:0;pointer-events:none;transition:opacity .4s}.pistasF.on{opacity:1;pointer-events:auto}
 .lobby{position:absolute;inset:0;z-index:1001;display:grid;place-items:center;background:#0e2a1cd9;padding:16px}
 .lbox{background:var(--panel);border:2px solid var(--gold);border-radius:18px;padding:18px 22px;max-width:100%;box-shadow:inset 0 5px 0 var(--red)}
 .ltitle{font-family:var(--xmas);font-size:40px;color:var(--gold);text-align:center;margin-bottom:8px}
@@ -334,7 +335,7 @@ function master(){
     <span class="hint">Sala <b class="mono">${esc(SALA)}</b></span><button class="btn" id="qrBtn">Invitar · QR</button>
   </header>
   <div class="stage">
-    <div class="mapwrap" id="map"><div class="roundbig" id="rbig"></div><div class="reveal" id="rev" hidden></div><div class="lobby" id="lobby" hidden></div><div class="final" id="final" hidden></div></div>
+    <div class="mapwrap" id="map"><div class="roundbig" id="rbig"></div><div class="reveal" id="rev" hidden></div><div class="lobby" id="lobby" hidden></div><div class="final" id="final" hidden></div><iframe id="pistasF" class="pistasF" src="pistas/?embed=1" title="Pistas de la ronda"></iframe></div>
     <aside class="rail">
       <section class="card"><h3>Ronda</h3><div class="rounds" id="rounds"></div></section>
       <section class="card"><h3>Temporizador</h3>
@@ -424,7 +425,8 @@ function master(){
   function startRound(){map.home();showQR=false;phase='play';phaseEnd=Date.now()+S.secs*1000;lastBeep=-1;delete S.closeAt[S.round];S.revealed[S.round]=false;delete S.guesses[S.round];S.startAt[S.round]=Date.now()/1000;save();all();publish()}
   function reveal(){phase='reveal';phaseEnd=Date.now()+S.revealSecs*1000;S.revealed[S.round]=true;save();all();publish()}
   function next(){if(S.round<S.places.length){S.round++;startRound()}else{phase='final';save();all();publish();SFX.fanfare();boom(true)}}
-  function loop(){const now=Date.now();
+  let pKey='';function syncPistas(){const f=$('#pistasF');if(!f)return;const pf=phase==='paused'?pausedFrom:phase;const on=(pf==='play'||pf==='grace')&&!showQR;const k=on+'|'+S.round+'|'+(phase==='paused')+'|'+(S.startAt[S.round]||0);if(k===pKey)return;const prev=pKey.split('|');pKey=k;f.classList.toggle('on',on);try{const w=f.contentWindow;if(!on)return;if(phase==='paused')w.postMessage({gp:'pause'},'*');else if(prev[0]==='true'&&prev[1]==String(S.round)&&prev[3]===String(S.startAt[S.round]||0))w.postMessage({gp:'resume'},'*');else w.postMessage({gp:'round',r:S.round},'*')}catch(e){}}
+  function loop(){const now=Date.now();syncPistas();
     if(phase==='play'){left=Math.max(0,Math.ceil((phaseEnd-now)/1000));if(left<=5&&left>0&&left!==lastBeep){SFX.beep(880,.08);lastBeep=left}
       if(now>=phaseEnd){SFX.beep(440,.6);S.closeAt[S.round]=now/1000;phase='grace';phaseEnd=now+2500;save();publish()}}
     else if(phase==='grace'){left=0;if(now>=phaseEnd)reveal()}
