@@ -95,6 +95,10 @@ details.cfg summary{cursor:pointer;font-weight:700}
 .roundbig,.reveal{z-index:1000}
 .gdist{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;background:#123524;color:#fff8ec;border:2px solid;border-radius:999px;padding:3px 10px;font:700 13px var(--mono);box-shadow:0 2px 6px #0006}
 .gdist b{color:var(--gold)}
+.rpod{position:absolute;left:12px;bottom:28px;z-index:1000;background:#123524f2;border:2px solid var(--gold);border-radius:14px;padding:8px 14px;display:grid;gap:5px;min-width:min(300px,calc(100% - 24px));box-shadow:inset 0 3px 0 var(--red);animation:pop .4s ease-out}
+.rpod div{display:grid;grid-template-columns:26px 14px 1fr auto auto;gap:8px;align-items:center;font-size:16px}
+.rpod .rpt{display:block;font-family:var(--xmas);color:var(--gold);font-size:20px}
+.rpod .pts{color:var(--gold)}
 .gdist.done{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.25)}100%{transform:translate(-50%,-50%) scale(1)}}
 .final{z-index:1001}
@@ -133,31 +137,32 @@ function makeMap(container,{onPick}={}){
   const map=L.map(el,{worldCopyJump:true,zoomControl:false,minZoom:2,maxBounds:[[-85,-400],[85,400]]}).setView([35,0],2);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
-  const layer=L.layerGroup().addTo(map);
+  const layer=L.layerGroup().addTo(map);map.createPane('km').style.zIndex=680;
+  const pod=document.createElement('div');pod.className='rpod';pod.hidden=true;container.appendChild(pod);
   if(onPick)map.on('click',e=>{const ll=e.latlng.wrap();onPick({lat:ll.lat,lng:ll.lng})});
   try{new ResizeObserver(()=>map.invalidateSize()).observe(el)}catch(e){}setTimeout(()=>map.invalidateSize(),300);
   const gift=c=>L.divIcon({className:'gpin',iconSize:[34,46],iconAnchor:[17,44],tooltipAnchor:[0,-42],html:`<svg viewBox="-17 -44 34 46" width="34" height="46"><ellipse rx="6" ry="2.5" fill="#00000066"/><path d="M0,0 C-4,-10 -15,-15 -15,-28 A15,15 0 1 1 15,-28 C15,-15 4,-10 0,0Z" fill="${c}" stroke="#0d1b26" stroke-width="2"/><rect x="-8" y="-31" width="16" height="11" rx="1.5" fill="#fff8ec"/><rect x="-9.5" y="-35" width="19" height="5" rx="1.5" fill="#fff8ec" stroke="#0d1b26" stroke-width=".6"/><rect x="-1.6" y="-35" width="3.2" height="15" fill="#e2574c"/><path d="M0,-35 C-7,-43 -9,-36 0,-35 C9,-36 7,-43 0,-35Z" fill="#e2574c" stroke="#0d1b26" stroke-width=".6"/></svg>`});
   const star=L.divIcon({className:'gpin',iconSize:[40,40],iconAnchor:[20,20],tooltipAnchor:[0,-18],html:'<svg viewBox="-20 -20 40 40" width="40" height="40"><path d="M0,-17 L5,-6 17,-5 8,3 11,15 0,9 -11,15 -8,3 -17,-5 -5,-6Z" fill="#f4c04e" stroke="#2a1504" stroke-width="2"/></svg>'});
   return {
-    set(items){layer.clearLayers();
+    set(items){layer.clearLayers();pod.hidden=true;
       for(const l of items.lines||[])L.polyline([[l.a.lat,l.a.lng],[l.b.lat,l.b.lng]],{color:l.color,weight:3,dashArray:'7 6',opacity:.9,interactive:false}).addTo(layer);
       for(const m of items.markers||[]){const mk=L.marker([m.lat,m.lng],{icon:m.star?star:gift(m.color||'#f2b84b'),interactive:false,zIndexOffset:m.star?1000:0}).addTo(layer);
         if(m.label)mk.bindTooltip(esc(m.label),{permanent:true,direction:'top',className:'glabel'+(m.star?' gstar':'')})}},
-    animate(ans,res,instant){layer.clearLayers();
+    animate(ans,res,instant){layer.clearLayers();pod.hidden=true;
       const sm=L.marker([ans.lat,ans.lng],{icon:star,interactive:false,zIndexOffset:2000}).addTo(layer);sm.bindTooltip(esc(ans.name),{permanent:true,direction:'top',className:'glabel gstar'});
       const items=res.map((x,i)=>{L.marker([x.lat,x.lng],{icon:gift(x.color),interactive:false}).addTo(layer).bindTooltip(esc(x.team),{permanent:true,direction:'top',className:'glabel'});
         const line=L.polyline([[x.lat,x.lng],[x.lat,x.lng]],{color:x.color,weight:4,dashArray:'8 7',opacity:.95,interactive:false}).addTo(layer);
-        const badge=L.marker([x.lat,x.lng],{interactive:false,zIndexOffset:1500,icon:L.divIcon({className:'gpin',iconSize:[0,0],html:`<span class="gdist" style="border-color:${x.color}">0 km</span>`})}).addTo(layer);
-        return {x,line,badge,delay:i*350,i}});
+        const badge=L.marker([x.lat,x.lng],{interactive:false,pane:'km',icon:L.divIcon({className:'gpin',iconSize:[0,0],html:`<span class="gdist" style="border-color:${x.color}">0 km</span>`})}).addTo(layer);
+        return {x,line,badge,delay:i*200,i}});
       const dur=instant?0:1800,t0=performance.now();
       const ease=p=>1-Math.pow(1-p,3);
       function frame(now){let done=true;
         for(const it of items){let p=dur?Math.min(1,Math.max(0,(now-t0-it.delay)/dur)):1;if(p<1)done=false;const e=ease(p);
           const cur=[it.x.lat+(ans.lat-it.x.lat)*e,it.x.lng+(ans.lng-it.x.lng)*e];it.line.setLatLngs([[it.x.lat,it.x.lng],cur]);it.badge.setLatLng(p<1?cur:[(it.x.lat+ans.lat)/2,(it.x.lng+ans.lng)/2]);
-          const el=it.badge.getElement();if(el){const sp=el.querySelector('.gdist');sp.innerHTML=p<1?fmtKm(it.x.km*e):`${fmtKm(it.x.km)} · <b>+${it.x.pts}</b>`;if(p>=1){sp.classList.add('done');if(it.i>=3&&!it.gone){it.gone=1;setTimeout(()=>layer.removeLayer(it.badge),instant?0:1500)}}}}
-        if(!done)requestAnimationFrame(frame)}
+          const el=it.badge.getElement();if(el){const sp=el.querySelector('.gdist');sp.innerHTML=p<1?fmtKm(it.x.km*e):`${fmtKm(it.x.km)} · <b>+${it.x.pts}</b>`;if(p>=1)sp.classList.add('done')}}
+        if(!done)requestAnimationFrame(frame);else{pod.innerHTML='<div class="rpt">Podio de la ronda</div>'+res.slice(0,3).map((x,i)=>`<div><span>${['🥇','🥈','🥉'][i]}</span><span class="dot" style="background:${x.color}"></span><b>${esc(x.team)}</b><span class="mono">${fmtKm(x.km)}</span><span class="mono pts">+${x.pts}</span></div>`).join('');pod.hidden=!res.length}}
       requestAnimationFrame(frame)},
-    home(){map.flyTo([35,0],2,{duration:.8})},
+    home(){pod.hidden=true;map.flyTo([35,0],2,{duration:.8})},
     fit(pts){if(!pts.length)return;if(pts.length===1)map.flyTo([pts[0].lat,pts[0].lng],6,{duration:1});else map.flyToBounds(pts.map(p=>[p.lat,p.lng]),{padding:[70,70],maxZoom:13,duration:1})}
   };
 }
