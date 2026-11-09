@@ -292,7 +292,7 @@ function leader(){
     drawMine();update()}
   Net.history().then(h=>{for(const m of h)if(m.k==='ok'||m.k==='dup')apply(m,false);const last=h.filter(m=>m.k==='state').pop();if(last)apply(last,false);hello()});
   Net.listen(m=>apply(m,true),netDot);
-  setInterval(hello,20000);setInterval(update,500);update();
+setInterval(update,500);update();
 }
 
 /* ---------- MASTER VIEW ---------- */
@@ -359,13 +359,13 @@ function master(){
   // ---- render ----
   function renderRounds(){$('#rounds').innerHTML=S.places.map((_,i)=>`<button class="${i+1===S.round?'on':''} ${S.revealed[i+1]?'done':''}" data-r="${i+1}" aria-label="Ronda ${i+1}">${i+1}</button>`).join('');
     $('#rbig').innerHTML=`<small>Ronda</small>${S.round} / ${S.places.length}`}
-  function online(){const now=Date.now();return Object.values(S.teams).filter(t=>now-(seen[canon(t.name)]||0)<75000)}
+  function online(){const now=Date.now();return Object.values(S.teams).filter(t=>now-(seen[canon(t.name)]||0)<3*3600e3)}
   function renderChips(){const on=new Set(online().map(t=>t.name));const all=[...new Set([...on,...allTeams()])].map(name=>({name}));$('#tcount').textContent=on.size;
     $('#chips').innerHTML=all.length?all.map(t=>`<span class="chip ${on.has(t.name)?'on':''}"><span class="dot" style="background:${colorOf(t.name)}"></span>${esc(t.name)}</span>`).join(''):'<p class="hint">Aún no hay equipos. Comparte el enlace o el QR.</p>';renderLobby()}
   function renderLobby(){const show=phase==='idle'||showQR;const el=$('#lobby');el.hidden=!show;if(!show)return;const on=online();
     el.innerHTML=`<div class="lbox"><div class="ltitle">¡Únete a GeoNavidad!</div><div class="lgrid"><div class="qr">${qrSVG(leaderLink())}</div>
       <div><p class="hint">Escanea el código o entra en</p><p class="mono llink">${esc(leaderLink())}</p><button class="btn" id="copyLink">Copiar enlace</button>
-      <p class="lcount"><b>${on.length}</b> equipo${on.length===1?'':'s'} conectado${on.length===1?'':'s'}</p><div class="chips">${on.map(t=>`<span class="chip on pop"><span class="dot" style="background:${colorOf(t.name)}"></span>${esc(t.name)}</span>`).join('')}</div></div></div>
+      <p class="lcount"><b>${on.length}</b> equipo${on.length===1?'':'s'} inscrito${on.length===1?'':'s'}</p><div class="chips">${on.map(t=>`<span class="chip on pop"><span class="dot" style="background:${colorOf(t.name)}"></span>${esc(t.name)}</span>`).join('')}</div></div></div>
       ${showQR&&phase!=='idle'?'<button class="btn" id="closeQR" style="margin-top:10px">Cerrar</button>':''}</div>`;
     const cl=$('#copyLink');if(cl)cl.onclick=async()=>{try{await navigator.clipboard.writeText(leaderLink());toast('Enlace copiado')}catch(e){toast(leaderLink())}};
     const cq=$('#closeQR');if(cq)cq.onclick=()=>{showQR=false;renderLobby()}}
