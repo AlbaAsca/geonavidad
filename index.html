@@ -235,7 +235,7 @@ const $ = s => document.querySelector(s);
 function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function haversine(a,b){const R=6371,r=Math.PI/180;const dLat=(b.lat-a.lat)*r,dLng=(b.lng-a.lng)*r;const h=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
-function score(km){if(km<0.2)return 5000;return Math.round(5000*Math.exp(-km/2000))}
+const ZONA=25;function score(km){if(km<=ZONA)return 5000;return Math.round(5000*Math.exp(-(km-ZONA)/2000))}
 function fmtKm(km){return km<1?Math.round(km*1000)+' m':km<100?km.toFixed(1)+' km':Math.round(km).toLocaleString('es-ES')+' km'}
 const PALETTE=['#f2b84b','#e2574c','#6fcf8f','#7fb6ff','#d48cff','#ff9f6b','#4fd6d0','#ffd8e5','#c3e86b','#b9a3ff','#ff6fae','#9fe0ff'];
 
