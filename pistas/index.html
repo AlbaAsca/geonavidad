@@ -13,7 +13,11 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 .tag{font-family:var(--xmas);font-size:6vh;color:var(--gold);line-height:1}
 .q{font-size:3.4vh;font-weight:800;text-align:right;max-width:60%}
 .pic{flex:1;min-height:0;border:4px solid var(--gold);border-radius:20px;overflow:hidden;box-shadow:inset 0 0 0 4px var(--red),0 20px 60px #0008;background:#000}
-.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic{position:relative}
+.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;opacity:0;transition:opacity .6s}
+.pic img.on{opacity:1}
+.pista{position:absolute;left:14px;top:12px;z-index:2;background:var(--red);color:#fff;border:2px solid var(--gold);border-radius:12px;padding:4px 14px;font-weight:800;font-size:2.6vh}
+.prog{position:absolute;left:0;bottom:0;height:6px;background:var(--gold);width:0;z-index:2}
 .cover{align-items:center;justify-content:center;text-align:center}
 .cover h1{font-family:var(--xmas);font-size:13vh;margin:0;line-height:1}.cover h1 i{font-style:normal;color:var(--red);text-shadow:0 0 2px var(--ink)}
 .cover p{font-size:3.2vh;color:var(--muted);max-width:60ch;margin:1vh auto}
@@ -28,27 +32,32 @@ body{background:radial-gradient(ellipse at top,#1b4a32,var(--night) 60%);color:v
 <canvas id="snow"></canvas>
 <section class="slide cover on">
   <h1>Geo<i>Navidad</i></h1>
-  <p>Te enseñamos un rincón del mundo. Tu equipo tiene 30 segundos para colocar su regalo en el mapa lo más cerca posible.</p>
+  <p>Te enseñamos un rincón del mundo en 3 fotos: la primera casi imposible, la última mucho más clara. Tu equipo tiene 30 segundos para colocar su regalo en el mapa lo más cerca posible.</p>
   <div class="steps">
     <div class="step"><b>1 · Mira</b>Fíjate en carteles, idioma, clima y arquitectura.</div>
     <div class="step"><b>2 · Discute</b>El líder escucha al equipo… y decide.</div>
-    <div class="step"><b>3 · Marca</b>Cuanto más cerca y más rápido, más puntos.</div>
+    <div class="step"><b>3 · Marca</b>Cuanto más cerca y más rápido, más puntos. ¿Te arriesgas con la primera foto?</div>
   </div>
 </section>
-<section class="slide"><div class="bar"></div><div class="top"><div class="tag">Ronda 1</div><div class="q">Mucho rascacielos, mucha prisa… ¿dónde estamos?</div></div><div class="pic"><img src="ronda1.jpg" alt="Pista de la ronda 1"></div></section>
-<section class="slide"><div class="bar"></div><div class="top"><div class="tag">Ronda 2</div><div class="q">Hace un frío que pela y por aquí alguien reparte muchos regalos…</div></div><div class="pic"><img src="ronda2.jpg" alt="Pista de la ronda 2"></div></section>
-<section class="slide"><div class="bar"></div><div class="top"><div class="tag">Ronda 3</div><div class="q">Dicen que sus luces de Navidad se ven desde el espacio.</div></div><div class="pic"><img src="ronda3.jpg" alt="Pista de la ronda 3"></div></section>
-<section class="slide"><div class="bar"></div><div class="top"><div class="tag">Ronda 4</div><div class="q">Piedra rosa, trenecito turístico… ¿qué país será?</div></div><div class="pic"><img src="ronda4.jpg" alt="Pista de la ronda 4"></div></section>
-<section class="slide"><div class="bar"></div><div class="top"><div class="tag">Ronda 5</div><div class="q">Rayas rojas y blancas, galletas de jengibre y mucho abrigo.</div></div><div class="pic"><img src="ronda5.jpg" alt="Pista de la ronda 5"></div></section>
-<section class="slide"><div class="bar"></div><div class="top"><div class="tag">Ronda 6</div><div class="q">La más difícil: columnas antiguas y mucha, mucha historia.</div></div><div class="pic"><img src="ronda6.jpg" alt="Pista de la ronda 6"></div></section>
+<section class="slide round"><div class="bar"></div><div class="top"><div class="tag">Ronda 1</div><div class="q">Mucho rascacielos, mucha prisa… ¿dónde estamos?</div></div><div class="pic"><span class="pista">Pista 1 de 3</span><img src="r1a.jpg" alt="Ronda 1, pista 1" class="on"><img src="r1b.jpg" alt="Ronda 1, pista 2"><img src="ronda1.jpg" alt="Ronda 1, pista 3"><div class="prog"></div></div></section>
+<section class="slide round"><div class="bar"></div><div class="top"><div class="tag">Ronda 2</div><div class="q">Hace un frío que pela y por aquí alguien reparte muchos regalos…</div></div><div class="pic"><span class="pista">Pista 1 de 3</span><img src="r2a.jpg" alt="Ronda 2, pista 1" class="on"><img src="ronda2.jpg" alt="Ronda 2, pista 2"><img src="r2c.jpg" alt="Ronda 2, pista 3"><div class="prog"></div></div></section>
+<section class="slide round"><div class="bar"></div><div class="top"><div class="tag">Ronda 3</div><div class="q">Dicen que sus luces de Navidad se ven desde el espacio.</div></div><div class="pic"><span class="pista">Pista 1 de 3</span><img src="r3a.jpg" alt="Ronda 3, pista 1" class="on"><img src="r3b.jpg" alt="Ronda 3, pista 2"><img src="ronda3.jpg" alt="Ronda 3, pista 3"><div class="prog"></div></div></section>
+<section class="slide round"><div class="bar"></div><div class="top"><div class="tag">Ronda 4</div><div class="q">Piedra rosa, bicis y vino caliente… ¿qué país será?</div></div><div class="pic"><span class="pista">Pista 1 de 3</span><img src="r4a.jpg" alt="Ronda 4, pista 1" class="on"><img src="r4b.jpg" alt="Ronda 4, pista 2"><img src="ronda4.jpg" alt="Ronda 4, pista 3"><div class="prog"></div></div></section>
+<section class="slide round"><div class="bar"></div><div class="top"><div class="tag">Ronda 5</div><div class="q">Rayas rojas y blancas, galletas de jengibre y mucho abrigo.</div></div><div class="pic"><span class="pista">Pista 1 de 3</span><img src="r5a.jpg" alt="Ronda 5, pista 1" class="on"><img src="ronda5.jpg" alt="Ronda 5, pista 2"><img src="r5c.jpg" alt="Ronda 5, pista 3"><div class="prog"></div></div></section>
+<section class="slide round"><div class="bar"></div><div class="top"><div class="tag">Ronda 6</div><div class="q">La más difícil: piedra antigua y mucha, mucha historia.</div></div><div class="pic"><span class="pista">Pista 1 de 3</span><img src="r6a.jpg" alt="Ronda 6, pista 1" class="on"><img src="ronda6.jpg" alt="Ronda 6, pista 2"><img src="r6c.jpg" alt="Ronda 6, pista 3"><div class="prog"></div></div></section>
 <section class="slide cover"><h1>¡Gracias por jugar!</h1><p>Mirad el podio final en la pantalla del juego.</p></section>
 <div class="count" id="count"></div>
 <div class="nav"><button id="prev">←</button><button id="next">→</button><button id="fs">Pantalla completa</button></div>
 <script>
-const S=[...document.querySelectorAll('.slide')];let i=0;
-function go(n){i=Math.max(0,Math.min(S.length-1,n));S.forEach((s,k)=>s.classList.toggle('on',k===i));document.getElementById('count').textContent=(i+1)+' / '+S.length;try{location.hash=i}catch(e){}}
-addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' '].includes(e.key))go(i+1);if(['ArrowLeft','PageUp'].includes(e.key))go(i-1);if(e.key==='f')fs()});
-document.getElementById('next').onclick=()=>go(i+1);document.getElementById('prev').onclick=()=>go(i-1);
+const S=[...document.querySelectorAll('.slide')];let i=0,st=0,auto=true,tm=null,t0=0;const STEP=10000;
+function paintStage(){const sl=S[i];if(!sl.classList.contains('round'))return;const im=sl.querySelectorAll('.pic img');im.forEach((x,k)=>x.classList.toggle('on',k===st));sl.querySelector('.pista').textContent='Pista '+(st+1)+' de 3';}
+function tick(){const sl=S[i];if(!sl||!sl.classList.contains('round'))return;const p=sl.querySelector('.prog');const el=Date.now()-t0;p.style.width=(auto&&st<2?Math.min(100,el/STEP*100):0)+'%';if(auto&&st<2&&el>=STEP){st++;t0=Date.now();paintStage()}}
+setInterval(tick,100);
+function go(n){i=Math.max(0,Math.min(S.length-1,n));st=0;t0=Date.now();S.forEach((s,k)=>s.classList.toggle('on',k===i));paintStage();document.getElementById('count').textContent=(i+1)+' / '+S.length+(auto?' · auto 10 s':' · manual');try{history.replaceState(null,'','#'+i)}catch(e){}}
+function next(){if(S[i].classList.contains('round')&&st<2){st++;t0=Date.now();paintStage()}else go(i+1)}
+function prev(){if(S[i].classList.contains('round')&&st>0){st--;t0=Date.now();paintStage()}else go(i-1)}
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next()}if(['ArrowLeft','PageUp'].includes(e.key))prev();if(e.key==='f')fs();if(e.key==='a'){auto=!auto;t0=Date.now();go(i)}});
+document.getElementById('next').onclick=next;document.getElementById('prev').onclick=prev;
 function fs(){(document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{})}
 document.getElementById('fs').onclick=fs;
 go(+location.hash.slice(1)||0);
