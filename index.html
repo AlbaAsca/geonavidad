@@ -88,6 +88,14 @@ details.cfg summary{cursor:pointer;font-weight:700}
 .cfgrow input{min-width:0;padding:6px 7px;font-size:13px}
 .warn{color:var(--gold);font-size:12px}
 .lbl{font:700 13px var(--display);fill:#5a0d15;paint-order:stroke;stroke:#fff;stroke-width:4px}
+.leaflet-container{background:#aad3df;font-family:var(--display);cursor:crosshair}
+.gpin{background:none!important;border:0!important}
+.glabel{background:#fff8ec;color:#5a0d15;border:1px solid #d42b38;font-weight:700;font-size:12px;padding:2px 7px;border-radius:8px}
+.glabel.gstar{background:#d42b38;color:#fff;border-color:#f4c04e;font-size:13px}
+.roundbig,.reveal{z-index:1000}
+.final{z-index:1001}
+.toast{z-index:3000}
+.leaflet-control-zoom a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
 @media (max-width:820px){
   body{overflow:auto}
   .stage{flex-direction:column}
@@ -100,8 +108,8 @@ details.cfg summary{cursor:pointer;font-weight:700}
 <div class="app" id="app"></div>
 <div class="toast" id="toast" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 
 const LS = {get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -117,49 +125,21 @@ const PALETTE=['#f2b84b','#e2574c','#6fcf8f','#7fb6ff','#d48cff','#ff9f6b','#4fd
 let countries=[];
 
 function makeMap(container,{onPick}={}){
-  const W=1000,H=620;
-  const svg=d3.select(container).insert('svg',':first-child').attr('viewBox',`0 0 ${W} ${H}`).attr('preserveAspectRatio','xMidYMid meet');
-  const proj=d3.geoMercator().fitExtent([[0,0],[W,H]],{type:'MultiPoint',coordinates:[[-168,-56],[179.9,76],[-168,76],[179.9,-56]]});
-  const path=d3.geoPath(proj);
-  const g=svg.append('g');
-  g.append('path').attr('class','grat').attr('d',path(d3.geoGraticule10()));
-  const nameBox=d3.select(container).append('div').attr('class','country');
-  g.selectAll('path.land').data(countries).join('path').attr('class','land').attr('d',path)
-    .on('pointerenter',(e,d)=>nameBox.text(d.properties.name)).on('pointerleave',()=>nameBox.text(''));
-  const over=svg.append('g');
-  let t=d3.zoomIdentity;
-  const zoom=d3.zoom().scaleExtent([1,400]).clickDistance(5).translateExtent([[-200,-200],[W+200,H+200]])
-    .on('zoom',e=>{t=e.transform;g.attr('transform',t);draw()});
-  svg.call(zoom).on('dblclick.zoom',null);
-  const z=d3.select(container).append('div').attr('class','zoombtns');
-  z.append('button').attr('aria-label','Acercar').text('+').on('click',()=>svg.transition().duration(250).call(zoom.scaleBy,2));
-  z.append('button').attr('aria-label','Alejar').text('−').on('click',()=>svg.transition().duration(250).call(zoom.scaleBy,.5));
-  z.append('button').attr('aria-label','Ver mundo').text('⌂').style('font-size','16px').on('click',()=>svg.transition().duration(400).call(zoom.transform,d3.zoomIdentity));
-  svg.on('click',e=>{if(!onPick)return;const p=t.invert(d3.pointer(e,svg.node()));const ll=proj.invert(p);if(!ll)return;
-    const hit=countries.find(c=>d3.geoContains(c,ll));nameBox.text(hit?hit.properties.name:'Océano');
-    onPick({lng:((ll[0]+540)%360)-180,lat:ll[1]})});
-  let items={markers:[],lines:[]};
-  function P(ll){const p=proj([ll.lng,ll.lat]);return t.apply(p)}
-  function draw(){
-    over.selectAll('*').remove();
-    for(const l of items.lines){const a=P(l.a),b=P(l.b);over.append('line').attr('x1',a[0]).attr('y1',a[1]).attr('x2',b[0]).attr('y2',b[1]).attr('stroke',l.color).attr('stroke-width',2).attr('stroke-dasharray','6 5').attr('opacity',.9)}
-    for(const m of items.markers){const p=P(m);
-      if(m.star){over.append('path').attr('d',d3.symbol(d3.symbolStar,520)()).attr('transform',`translate(${p})`).attr('fill','#f2b84b').attr('stroke','#1d1405').attr('stroke-width',2)}
-      else{const c=m.color||'#f2b84b';const gp=over.append('g').attr('transform',`translate(${p})`);
-        gp.append('ellipse').attr('rx',6).attr('ry',2.5).attr('fill','#00000066');
-        gp.append('path').attr('d','M0,0 C-4,-10 -15,-15 -15,-28 A15,15 0 1 1 15,-28 C15,-15 4,-10 0,0Z').attr('fill',c).attr('stroke','#0d1b26').attr('stroke-width',2);
-        gp.append('rect').attr('x',-8).attr('y',-31).attr('width',16).attr('height',11).attr('rx',1.5).attr('fill','#fff8ec');
-        gp.append('rect').attr('x',-9.5).attr('y',-35).attr('width',19).attr('height',5).attr('rx',1.5).attr('fill','#fff8ec').attr('stroke','#0d1b26').attr('stroke-width',.6);
-        gp.append('rect').attr('x',-1.6).attr('y',-35).attr('width',3.2).attr('height',15).attr('fill','#e2574c');
-        gp.append('path').attr('d','M0,-35 C-7,-43 -9,-36 0,-35 C9,-36 7,-43 0,-35Z').attr('fill','#e2574c').attr('stroke','#0d1b26').attr('stroke-width',.6)}
-      if(m.label)over.append('text').attr('class','lbl').attr('x',p[0]+(m.star?14:18)).attr('y',p[1]+(m.star?4:-24)).text(m.label)}
-  }
+  const el=document.createElement('div');el.style.cssText='position:absolute;inset:0';container.insertBefore(el,container.firstChild);
+  const map=L.map(el,{worldCopyJump:true,zoomControl:false,minZoom:2,maxBounds:[[-85,-400],[85,400]]}).setView([35,0],2);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+  L.control.zoom({position:'topright'}).addTo(map);
+  const layer=L.layerGroup().addTo(map);
+  if(onPick)map.on('click',e=>{const ll=e.latlng.wrap();onPick({lat:ll.lat,lng:ll.lng})});
+  try{new ResizeObserver(()=>map.invalidateSize()).observe(el)}catch(e){}setTimeout(()=>map.invalidateSize(),300);
+  const gift=c=>L.divIcon({className:'gpin',iconSize:[34,46],iconAnchor:[17,44],tooltipAnchor:[0,-42],html:`<svg viewBox="-17 -44 34 46" width="34" height="46"><ellipse rx="6" ry="2.5" fill="#00000066"/><path d="M0,0 C-4,-10 -15,-15 -15,-28 A15,15 0 1 1 15,-28 C15,-15 4,-10 0,0Z" fill="${c}" stroke="#0d1b26" stroke-width="2"/><rect x="-8" y="-31" width="16" height="11" rx="1.5" fill="#fff8ec"/><rect x="-9.5" y="-35" width="19" height="5" rx="1.5" fill="#fff8ec" stroke="#0d1b26" stroke-width=".6"/><rect x="-1.6" y="-35" width="3.2" height="15" fill="#e2574c"/><path d="M0,-35 C-7,-43 -9,-36 0,-35 C9,-36 7,-43 0,-35Z" fill="#e2574c" stroke="#0d1b26" stroke-width=".6"/></svg>`});
+  const star=L.divIcon({className:'gpin',iconSize:[40,40],iconAnchor:[20,20],tooltipAnchor:[0,-18],html:'<svg viewBox="-20 -20 40 40" width="40" height="40"><path d="M0,-17 L5,-6 17,-5 8,3 11,15 0,9 -11,15 -8,3 -17,-5 -5,-6Z" fill="#f4c04e" stroke="#2a1504" stroke-width="2"/></svg>'});
   return {
-    set(next){items=next;draw()},
-    fit(pts){if(!pts.length)return;const xy=pts.map(p=>proj([p.lng,p.lat]));const xs=xy.map(p=>p[0]),ys=xy.map(p=>p[1]);
-      let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);const pad=60;
-      const k=Math.max(1,Math.min(60,.85/Math.max((x1-x0+pad)/W,(y1-y0+pad)/H)));
-      const cx=(x0+x1)/2,cy=(y0+y1)/2;svg.transition().duration(900).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(k).translate(-cx,-cy))}
+    set(items){layer.clearLayers();
+      for(const l of items.lines||[])L.polyline([[l.a.lat,l.a.lng],[l.b.lat,l.b.lng]],{color:l.color,weight:3,dashArray:'7 6',opacity:.9,interactive:false}).addTo(layer);
+      for(const m of items.markers||[]){const mk=L.marker([m.lat,m.lng],{icon:m.star?star:gift(m.color||'#f2b84b'),interactive:false,zIndexOffset:m.star?1000:0}).addTo(layer);
+        if(m.label)mk.bindTooltip(esc(m.label),{permanent:true,direction:'top',className:'glabel'+(m.star?' gstar':'')})}},
+    fit(pts){if(!pts.length)return;if(pts.length===1)map.flyTo([pts[0].lat,pts[0].lng],6,{duration:1});else map.flyToBounds(pts.map(p=>[p.lat,p.lng]),{padding:[70,70],maxZoom:13,duration:1})}
   };
 }
 
@@ -347,6 +327,6 @@ new MutationObserver(()=>{const b=document.querySelector('.brand');if(b&&!b.quer
   size();addEventListener('resize',size);
   (function loop(t){x.clearRect(0,0,W,H);x.fillStyle='rgba(255,255,255,.85)';for(const p of f){p.y+=p.s;p.x+=Math.sin(t/1400+p.d)*.3;if(p.y>H){p.y=-4;p.x=Math.random()*W}x.beginPath();x.arc(p.x,p.y,p.r,0,6.283);x.fill()}requestAnimationFrame(loop)})(0)})();
 function route(){location.hash==='#master'?master():leader()}
-fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json').then(r=>r.json()).then(W=>{countries=topojson.feature(W,W.objects.countries).features;window.addEventListener('hashchange',route);route()}).catch(()=>{document.getElementById('app').innerHTML='<p style="padding:20px">No se pudo cargar el mapa. Recarga la página.</p>'});
+window.addEventListener('hashchange',route);route();
 </script>
 </body></html>
