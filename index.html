@@ -1,14 +1,19 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><script>/* DEMO: ?demo=1 simula 10 equipos sin conexión real */
+<!doctype html><html lang="es"><head><meta charset="utf-8"><script>/* DEMO: ?demo=1 simula la conexión (y 10 equipos en el master); abre otra pestaña sin #master para jugar como concursante */
 if(new URLSearchParams(location.search).has('demo')){(()=>{
 const P=[{name:"Rockefeller Center, Nueva York",lat:40.7587,lng:-73.9787},{name:"Pueblo de Papá Noel, Rovaniemi",lat:66.5436,lng:25.8473},{name:"Vigo",lat:42.2406,lng:-8.7207},{name:"Mercadillo de Estrasburgo",lat:48.5819,lng:7.7507},{name:"Basílica de la Natividad, Belén",lat:31.7043,lng:35.2024},{name:"Alumbrados del río, Medellín",lat:6.2380,lng:-75.5760}];
-const sala=(new URLSearchParams(location.search).get('sala')||'navidad-k7q2x9').replace(/[^\w-]/g,'');const KEY='geo-master3:'+sala;
-if(location.hash.includes('master'))try{localStorage.setItem(KEY,JSON.stringify({places:P,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}}))}catch(e){}
-const of=window.fetch;const ls=[];
+const sala=(new URLSearchParams(location.search).get('sala')||'navidad-k7q2x9').replace(/[^\w-]/g,'');const KEY='geo-master3:'+sala;const isM=location.hash.includes('master');
+if(isM)try{localStorage.setItem(KEY,JSON.stringify({places:P,secs:30,revealSecs:15,round:1,guesses:{},revealed:{},closeAt:{}}))}catch(e){}
+let bc=null;try{bc=new BroadcastChannel('geo-demo-'+sala)}catch(e){}
+const of=window.fetch;const ls=[];const deliver=m=>ls.forEach(es=>es.onmessage&&es.onmessage({data:JSON.stringify(m)}));
+const wrap=o=>({event:'message',time:Math.floor(Date.now()/1000),message:JSON.stringify(o)});
+const send=o=>{const m=wrap(o);setTimeout(()=>deliver(m),0);bc&&bc.postMessage(m)};
+if(bc)bc.onmessage=e=>{const m=e.data;try{const o=JSON.parse(m.message);if(o.k==='__need'){if(isM&&window.__state)bc.postMessage(wrap(window.__state));return}}catch(_){}deliver(m)};
 window.fetch=async(u,o)=>{u=String(u);if(!u.includes('ntfy.sh'))return of(u,o);
- if(o&&o.method==='POST'){try{const m=JSON.parse(o.body);if(m.k==='state')window.__state=m}catch(e){}return new Response('{}')}
+ if(o&&o.method==='POST'){try{const m=JSON.parse(o.body);if(m.k==='state')window.__state=m;send(m)}catch(e){}return new Response('{}')}
  return new Response('')};
-window.EventSource=function(){const es=this;ls.push(es);setTimeout(()=>es.onopen&&es.onopen(),20)};
-const emit=o=>ls.forEach(es=>es.onmessage&&es.onmessage({data:JSON.stringify({event:'message',time:Math.floor(Date.now()/1000),message:JSON.stringify(o)})}));
+window.EventSource=function(){const es=this;ls.push(es);setTimeout(()=>{es.onopen&&es.onopen();if(!isM&&bc)bc.postMessage(wrap({k:'__need'}))},20)};
+if(!isM)return;
+const emit=o=>deliver(wrap(o));
 const T=['Los Renos Locos','Turrón Duro','Elfos Express','Polvorones','Bolas de Nieve','Los Reyes Majos','Mazapán Team','Zambomba','Villancicos FC','Trineo Turbo'];
 const skill=T.map(()=>0.4+Math.random()*1.4);const done={};
 setTimeout(()=>T.forEach((t,i)=>setTimeout(()=>emit({k:'hello',team:t,id:'demo'+i}),i*700)),2500);
@@ -219,6 +224,7 @@ input,button{font-family:var(--display)}
 .llink{font-weight:500;letter-spacing:.02em}
 
 #teams table{font-size:12.5px}#teams th{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}#teams td,#teams th{padding:5px 4px}#teams td.n,#teams th{white-space:nowrap}#teams td:first-child{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bz{color:var(--gold);font-weight:600}.gdist .bz{color:#f2d6a2}
+.rail.live>.card{order:3}.rail.live>.card:has(#rounds),.rail.live>.card:has(#timer){order:0}.rail.live>.card:has(#cnt){order:1}.rail.live>.card:has(#tcount){order:2}
 </style>
 
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -504,7 +510,7 @@ function master(){
     else if(phase==='grace'){left=0;if(now>=phaseEnd)reveal()}
     else if(phase==='reveal'){left=Math.max(0,Math.ceil((phaseEnd-now)/1000));if(now>=phaseEnd)next()}
     paint()}
-  function paint(){const el=$('#timer'),lb=$('#tlabel'),bt=$('#tStart');const mm=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
+  function paint(){const rl=document.querySelector('.rail');if(rl)rl.classList.toggle('live',phase!=='idle');const el=$('#timer'),lb=$('#tlabel'),bt=$('#tStart');const mm=x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0');
     const M={idle:['Pulsa Empezar partida',mm(S.secs),'Empezar partida'],play:['Tiempo para responder',mm(left),'Pausa'],grace:['¡Tiempo!','0:00','Pausa'],
       reveal:['Resultados · siguiente ronda en',mm(left),'Pausa'],paused:['En pausa',mm(Math.ceil(pausedLeft/1000)),'Continuar'],final:['Partida terminada','FIN','Jugar otra vez']};
     const [l,t,b]=M[phase]||M.idle;lb.textContent=l;el.textContent=t;bt.textContent=b;el.className='timer'+(phase==='play'&&left<=5?' low':'')+(phase==='grace'?' over':'')}
