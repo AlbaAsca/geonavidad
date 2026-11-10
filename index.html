@@ -227,7 +227,7 @@ input,button{font-family:var(--display)}
 .rail.live>.card{order:3}.rail.live>.card:has(#rounds),.rail.live>.card:has(#timer){order:0}.rail.live>.card:has(#cnt){order:1}.rail.live>.card:has(#tcount){order:2}
 
 #send{font-size:14px;letter-spacing:.14em;padding:14px 22px;transition:background .2s,color .2s}
-#send.pending{background:#fff;color:#8e1230;border-color:#fff;animation:sendpulse 1.1s ease-out infinite}
+#send.pending{background:#fff;color:#8e1230;border-color:#fff}
 @keyframes sendpulse{0%{box-shadow:0 0 0 0 #ffffffb0}75%{box-shadow:0 0 0 16px #ffffff00}100%{box-shadow:0 0 0 0 #ffffff00}}
 #send.sent{background:#1f7a45;border-color:#1f7a45;color:#fff;opacity:1}
 #send:disabled:not(.sent){opacity:.6}
@@ -361,7 +361,7 @@ function leader(){
       <button class="btn gold wbig" id="wgo">Inscribir equipo</button><p class="werr" id="werr"></p></div>
     <div id="wdone" hidden><p class="wok">✓ ¡Inscritos como <b id="wteam"></b>!</p><p class="wsub">Esperando a que empiece la partida…<br>Mantén esta página abierta.</p><button class="btn" id="wchange">Cambiar nombre</button></div>
   </div></div>`;
-  const map=makeMap($('#map'),{onPick(ll){if(state.revealed||!state.open)return;pick=ll;sentFor=null;drawMine();update()}});
+  const map=makeMap($('#map'),{onPick(ll){if(state.revealed||!state.open)return;pick=ll;sentFor=null;drawMine();update();clearTimeout(window.__ps);window.__ps=setTimeout(()=>doSend(false),500)}});
   const team=$('#team'),send=$('#send'),code=$('#code'),hintBtn=$('#hintBtn');
   const tn=()=>team.value.replace(/[|\n]/g,' ').trim().slice(0,24);
   function hello(){const t=tn();if(!t)return;Net.send({k:'hello',team:t,id:myId}).catch(()=>{})}
@@ -370,7 +370,7 @@ function leader(){
     map.set({markers:pick?[{...pick,color:'#d42b38',label:tn()||'Tú'}]:[],lines:[]})}
   function timeLeft(){return state.open&&state.endAt?Math.max(0,Math.ceil((state.endAt-Date.now())/1000)):null}
   function update(){const t=tn();LS.set('geo-leader',{team:t});
-    const tl=timeLeft();const ready=!!(pick&&t&&registered&&state.open&&tl>0),sent=sentFor===state.r&&state.open;send.disabled=!ready||sent;send.classList.toggle('pending',ready&&!sent);send.classList.toggle('sent',!!sent);send.textContent=sent?'✓ Regalo enviado':ready?'🎁 Enviar regalo':state.open?'Toca el mapa para colocar tu regalo':'Enviar regalo';if(ready&&!sent&&state.endAt&&state.endAt-Date.now()<=2000&&autoFor!==state.r){autoFor=state.r;setTimeout(()=>doSend(true),0)}
+    const tl=timeLeft();const ready=!!(pick&&t&&registered&&state.open&&tl>0),sent=sentFor===state.r&&state.open;send.disabled=!ready||sent;send.classList.toggle('pending',ready&&!sent);send.classList.toggle('sent',!!sent);send.textContent=sent?'✓ Regalo enviado':ready?'Enviando…':state.open?'Toca el mapa para colocar tu regalo':'Esperando ronda';if(ready&&!sent&&state.endAt&&state.endAt-Date.now()<=2000&&autoFor!==state.r){autoFor=state.r;setTimeout(()=>doSend(true),0)}
     renderWelcome();
     $('#me').hidden=!registered;
     hintBtn.hidden=!(state.open&&state.hint&&usedHint!==state.r&&tl>0);
@@ -384,8 +384,8 @@ function leader(){
     else if(state.phase==='paused')s.textContent='Pausa.';
     else if(!state.open)s.textContent=state.phase==='idle'||!state.r?'¡Inscritos! Esperando a que empiece la partida.':'Ronda cerrada. Espera a la siguiente.';
     else if(tl===0)s.textContent='¡Tiempo!';
-    else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">✓ Enviado.</b> Si mueves el regalo, vuelve a enviarlo.';
-    else s.innerHTML=pick?'<b class="warnp">⚠️ Aún no lo has enviado</b>':'Toca el mapa para colocar tu regalo. Cuanto antes, más puntos.';
+    else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">✓ Enviado.</b> ¿Cambias de idea? Toca otro sitio y se reenvía.';
+    else s.innerHTML=pick?'<b class="warnp">Enviando…</b>':'Toca el mapa: el regalo se envía solo. Cuanto antes, más puntos.';
     code.value=pick&&t&&state.r?`GEO R${state.r} | ${t} | ${pick.lat.toFixed(5)}, ${pick.lng.toFixed(5)}`:''}
   const wname=$('#wname'),wgo=$('#wgo'),werr=$('#werr');wname.value=st.team||'';let retryH=null;
   function join(){const t=wname.value.replace(/[|\n]/g,' ').trim().slice(0,24);if(t.length<2){werr.textContent='Escribe un nombre de al menos 2 letras.';wname.focus();return}
