@@ -225,6 +225,24 @@ input,button{font-family:var(--display)}
 
 #teams table{font-size:12.5px}#teams th{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}#teams td,#teams th{padding:5px 4px}#teams td.n,#teams th{white-space:nowrap}#teams td:first-child{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bz{color:var(--gold);font-weight:600}.gdist .bz{color:#f2d6a2}
 .rail.live>.card{order:3}.rail.live>.card:has(#rounds),.rail.live>.card:has(#timer){order:0}.rail.live>.card:has(#cnt){order:1}.rail.live>.card:has(#tcount){order:2}
+
+#send{font-size:14px;letter-spacing:.14em;padding:14px 22px;transition:background .2s,color .2s}
+#send.pending{background:#fff;color:#8e1230;border-color:#fff;animation:sendpulse 1.1s ease-out infinite}
+@keyframes sendpulse{0%{box-shadow:0 0 0 0 #ffffffb0}75%{box-shadow:0 0 0 16px #ffffff00}100%{box-shadow:0 0 0 0 #ffffff00}}
+#send.sent{background:#1f7a45;border-color:#1f7a45;color:#fff;opacity:1}
+#send:disabled:not(.sent){opacity:.6}
+.warnp{color:var(--gold)}
+.lbar:has(#send){position:sticky;bottom:0;z-index:30;background:#5a0a1cf0;backdrop-filter:blur(8px);border:1px solid #ffffff33;border-radius:18px;padding:10px 12px;margin-top:8px;align-items:center}
+@media (max-width:700px){
+ .lbar:has(#send){display:grid;grid-template-columns:auto 1fr;gap:8px 12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+ .lbar:has(#send) #send{grid-column:1/-1;width:100%;font-size:16px;padding:16px}
+ .lbar:has(#send) #hintBtn{grid-column:1/-1}
+ .lbar:has(#send) #status{font-size:14px}
+ #ltimer{font-size:30px!important;min-width:0!important}
+ header .f input{max-width:60vw}
+ details.hint{font-size:11px;opacity:.75}
+ body:has(#send)::before{display:none}
+}
 </style>
 
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -280,7 +298,7 @@ function makeMap(container,{onPick}={}){
         if(!done)requestAnimationFrame(frame);else{pod.innerHTML='<div class="rpt">Podio de la ronda</div>'+res.slice(0,3).map((x,i)=>`<div><span>${['🥇','🥈','🥉'][i]}</span><span class="dot" style="background:${x.color}"></span><b>${esc(x.team)}</b><span class="mono">${fmtKm(x.km)}</span><span class="mono pts">+${x.pts}${x.bonus?` <small class="bz">⚡${x.bonus}</small>`:''}</span></div>`).join('');pod.hidden=!res.length}}
       requestAnimationFrame(frame)},
     home(){pod.hidden=true;map.flyTo([35,0],2,{duration:.8})},
-    fit(pts){if(!pts.length)return;if(pts.length===1)map.flyTo([pts[0].lat,pts[0].lng],6,{duration:1});else map.flyToBounds(pts.map(p=>[p.lat,p.lng]),{padding:[70,70],maxZoom:13,duration:1})}
+    fit(pts){if(!pts.length)return;if(pts.length===1){map.flyTo([pts[0].lat,pts[0].lng],6,{duration:1});return}const a=pts[0];let rest=pts.slice(1).map(p=>({p,d:haversine(a,p)})).sort((x,y)=>x.d-y.d);const n=Math.max(Math.min(3,rest.length),Math.ceil(rest.length*0.6));rest=rest.slice(0,n).map(x=>x.p);map.flyToBounds([a,...rest].map(p=>[p.lat,p.lng]),{padding:[60,60],maxZoom:10,duration:1})}
   };
 }
 
@@ -320,7 +338,7 @@ function leader(){
   const st=LS.get('geo-leader',{team:''});
   let myId=LS.get('geo-id',null);if(!myId){myId=Math.random().toString(36).slice(2,12);LS.set('geo-id',myId)}
   let state={gid:null,r:0,endAt:0,open:false,revealed:false,answer:null,total:6,phase:'idle'};
-  let pick=null,sentFor=null,animKey='',usedHint=null,registered=false,finalShown='',dianaShown='';
+  let autoFor=null,pick=null,sentFor=null,animKey='',usedHint=null,registered=false,finalShown='',dianaShown='';
   $('#app').innerHTML=`
   <header>
     <div class="brand">Geo<i>Navidad</i></div><span class="tag" id="net">Conectando…</span><div class="spacer"></div>
@@ -352,7 +370,7 @@ function leader(){
     map.set({markers:pick?[{...pick,color:'#d42b38',label:tn()||'Tú'}]:[],lines:[]})}
   function timeLeft(){return state.open&&state.endAt?Math.max(0,Math.ceil((state.endAt-Date.now())/1000)):null}
   function update(){const t=tn();LS.set('geo-leader',{team:t});
-    const tl=timeLeft();send.disabled=!(pick&&t&&registered&&state.open&&tl>0);
+    const tl=timeLeft();const ready=!!(pick&&t&&registered&&state.open&&tl>0),sent=sentFor===state.r&&state.open;send.disabled=!ready||sent;send.classList.toggle('pending',ready&&!sent);send.classList.toggle('sent',!!sent);send.textContent=sent?'✓ Regalo enviado':ready?'🎁 Enviar regalo':state.open?'Toca el mapa para colocar tu regalo':'Enviar regalo';if(ready&&!sent&&state.endAt&&state.endAt-Date.now()<=2000&&autoFor!==state.r){autoFor=state.r;setTimeout(()=>doSend(true),0)}
     renderWelcome();
     $('#me').hidden=!registered;
     hintBtn.hidden=!(state.open&&state.hint&&usedHint!==state.r&&tl>0);
@@ -366,8 +384,8 @@ function leader(){
     else if(state.phase==='paused')s.textContent='Pausa.';
     else if(!state.open)s.textContent=state.phase==='idle'||!state.r?'¡Inscritos! Esperando a que empiece la partida.':'Ronda cerrada. Espera a la siguiente.';
     else if(tl===0)s.textContent='¡Tiempo!';
-    else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">Enviada.</b> Puedes cambiarla hasta que acabe el tiempo. Cuanto antes, más puntos.';
-    else s.textContent=pick?'Pulsa Enviar respuesta.':'Toca el mapa para colocar tu regalo. Cuanto antes, más puntos.';
+    else if(sentFor===state.r)s.innerHTML='<b style="color:var(--ok)">✓ Enviado.</b> Si mueves el regalo, vuelve a enviarlo.';
+    else s.innerHTML=pick?'<b class="warnp">⚠️ Aún no lo has enviado</b>':'Toca el mapa para colocar tu regalo. Cuanto antes, más puntos.';
     code.value=pick&&t&&state.r?`GEO R${state.r} | ${t} | ${pick.lat.toFixed(5)}, ${pick.lng.toFixed(5)}`:''}
   const wname=$('#wname'),wgo=$('#wgo'),werr=$('#werr');wname.value=st.team||'';let retryH=null;
   function join(){const t=wname.value.replace(/[|\n]/g,' ').trim().slice(0,24);if(t.length<2){werr.textContent='Escribe un nombre de al menos 2 letras.';wname.focus();return}
@@ -379,9 +397,9 @@ function leader(){
   function renderWelcome(){const started=state.r&&state.phase&&state.phase!=='idle';const show=!registered||(!started&&!state.final);
     $('#welcome').hidden=!show;$('#wform').hidden=registered;$('#wdone').hidden=!registered;$('#wteam').textContent=tn()}
   hintBtn.addEventListener('click',()=>{usedHint=state.r;$('#hintbox').innerHTML='💡 '+esc(state.hint);$('#hintbox').hidden=false;sentFor=null;update()});
-  send.addEventListener('click',async()=>{send.disabled=true;
-    try{await Net.send({k:'guess',gid:state.gid,r:state.r,team:tn(),id:myId,hint:usedHint===state.r,lat:pick.lat,lng:pick.lng});sentFor=state.r;toast('¡Regalo enviado!')}
-    catch(e){toast('No se pudo enviar. Usa la opción de copiar y pégalo en el chat.')}update()});
+  send.addEventListener('click',()=>doSend(false));async function doSend(auto){if(!pick||!state.open)return;send.disabled=true;
+    try{await Net.send({k:'guess',gid:state.gid,r:state.r,team:tn(),id:myId,hint:usedHint===state.r,lat:pick.lat,lng:pick.lng});sentFor=state.r;toast(auto?'¡Se acababa el tiempo: regalo enviado automáticamente!':'¡Regalo enviado!');if(navigator.vibrate)try{navigator.vibrate(60)}catch(_){}}
+    catch(e){toast('No se pudo enviar. Usa la opción de copiar y pégalo en el chat.')}update()}
   $('#copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.value);toast('Copiado. Pégalo en el chat de Meet.')}catch(e){code.select()}});
   function apply(m,live){
     if(m.k==='dup'&&m.id===myId){if(m.team&&canon(m.team)!==canon(tn()))return;registered=false;clearInterval(retryH);if(live){werr.textContent='Ese nombre ya lo usa otro equipo. Elige otro.';wgo.disabled=false;wgo.textContent='Inscribir equipo';wname.select()}update();return}
@@ -390,7 +408,7 @@ function leader(){
     if(newRound){pick=null;sentFor=null;usedHint=null;$('#hintbox').hidden=true;map.home()}
     if(m.phase==='play'&&!pick)map.set({markers:[],lines:[]});
     $('#rev').hidden=!(m.revealed&&m.answer);if(m.revealed&&m.answer){const res=m.results||[];$('#rev').textContent=m.answer.name+(res.length?` · Gana ${res[0].team}`:'');map.fit([m.answer,...res]);
-      const d=res.find(x=>x.km<1);const key=m.gid+':'+m.r;if(d&&live&&dianaShown!==key){dianaShown=key;setTimeout(()=>{banner(`¡DIANA!<small>${esc(d.team)} a ${fmtKm(d.km)}</small>`);boom(false)},3500)}}
+      const d=res.filter(x=>x.km<1);const key=m.gid+':'+m.r;if(d.length&&live&&dianaShown!==key){dianaShown=key;setTimeout(()=>{banner(`${d.length>1?'¡'+d.length+' DIANAS!':'¡DIANA!'}<small>${d.map(x=>esc(x.team)+' · '+fmtKm(x.km)).join('<br>')}</small>`);boom(false)},3500)}}
     if(m.revealed)$('#hintbox').hidden=true;
     $('#final').hidden=!m.final;if(m.final){$('#final').innerHTML=finalHTML(m.final);if(live&&finalShown!==m.gid){finalShown=m.gid;boom(true)}}
     drawMine();update()}
@@ -485,7 +503,7 @@ function master(){
     if(S.revealed[r]&&pl){const res=results(r);const key=S.gid+':'+r,first=animKey!==key;animKey=key;
       const rr=res.map(x=>({lat:x.ll.lat,lng:x.ll.lng,color:colorOf(x.team),team:x.team,km:x.km,pts:x.pts,bonus:x.bonus}));
       if(first&&phase==='reveal'){map.fit([pl,...rr]);setTimeout(()=>{map.animate(pl,rr,false);SFX.jingle()},1100);
-        const d=res.find(x=>x.km<1);if(d)setTimeout(()=>{banner(`¡DIANA!<small>${esc(d.team)} a ${fmtKm(d.km)}</small>`);boom(false);SFX.diana()},1100+200*rr.length+1900)}
+        const d=res.filter(x=>x.km<1);if(d.length)setTimeout(()=>{banner(`${d.length>1?'¡'+d.length+' DIANAS!':'¡DIANA!'}<small>${d.map(x=>esc(x.team)+' · '+fmtKm(x.km)).join('<br>')}</small>`);boom(false);SFX.diana()},1100+200*rr.length+1900)}
       else{if(first)map.fit([pl,...rr]);map.animate(pl,rr,true)}
       $('#rev').textContent=pl.name+(res.length?` · Gana ${res[0].team}`:'');$('#rev').hidden=false}
     else{map.set({markers:[],lines:[]});$('#rev').hidden=true}
